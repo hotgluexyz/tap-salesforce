@@ -3,21 +3,18 @@ import threading
 import time
 import backoff
 import requests
-import logging
-from requests.exceptions import RequestException, ConnectionError
+from requests.exceptions import RequestException
 import singer
 import singer.utils as singer_utils
 from singer import metadata, metrics
 
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.rest import Rest
-from simplejson.scanner import JSONDecodeError
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException,
     TapSalesforceQuotaExceededException)
 
 LOGGER = singer.get_logger()
-logging.getLogger('backoff').setLevel(logging.CRITICAL)
 
 # The minimum expiration setting for SF Refresh Tokens is 15 minutes
 REFRESH_TOKEN_EXPIRATION_PERIOD = 900
@@ -133,7 +130,7 @@ QUERY_INCOMPATIBLE_SALESFORCE_OBJECTS = set(['DataType',
                                              'QuoteTemplateRichTextData'])
 
 def log_backoff_attempt(details):
-    LOGGER.info("ConnectionFailure detected, triggering backoff: %d try", details.get("tries"))
+    LOGGER.info("ConnectionError detected, triggering backoff: %d try", details.get("tries"))
 
 
 def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
@@ -270,7 +267,7 @@ class Salesforce():
 
     # pylint: disable=too-many-arguments
     @backoff.on_exception(backoff.expo,
-                          (ConnectionError, JSONDecodeError),
+                          requests.exceptions.ConnectionError,
                           max_tries=10,
                           factor=2,
                           on_backoff=log_backoff_attempt)
@@ -293,7 +290,6 @@ class Salesforce():
             self.rest_requests_attempted += 1
             self.check_rest_quota_usage(resp.headers)
 
-        resp.json()
         return resp
 
     def login(self):
@@ -391,7 +387,7 @@ class Salesforce():
         replication_key = catalog_metadata.get((), {}).get('replication-key')
 
         if replication_key:
-            where_clause = " WHERE {} > {} ".format(
+            where_clause = " WHERE {} >= {} ".format(
                 replication_key,
                 start_date)
             if end_date:

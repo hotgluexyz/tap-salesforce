@@ -146,6 +146,10 @@ def generate_schema(fields, sf, sobject_name, replication_key):
     if replication_key:
         mdata = metadata.write(
             mdata, ('properties', replication_key), 'inclusion', 'automatic')
+    if sobject_name=="ListView":
+        required_fields = ["DeveloperName", "SobjectType"]
+        for f in required_fields:
+            mdata = metadata.write(mdata, ('properties', f), 'inclusion', 'automatic')
 
     # There are cases where compound fields are referenced by the associated
     # subfields but are not actually present in the field list

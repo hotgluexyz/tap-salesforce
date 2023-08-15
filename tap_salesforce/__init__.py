@@ -259,7 +259,7 @@ def do_discover(sf):
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 
-    objects_to_discover = {o['name'] for o in global_description['sobjects']}
+    objects_to_discover = {o['name'] for o in global_description['sobjects'] if o['name'] in ["Contact", "ListView", "Opportunity", "ListViews", "Report", "ReportList"]}
 
     sf_custom_setting_objects = []
     object_to_tag_references = {}

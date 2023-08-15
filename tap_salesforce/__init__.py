@@ -315,7 +315,7 @@ def do_discover(sf):
 
     mdata = metadata.new()
 
-    properties = {f"ListView_{o['SobjectType']}_{o['DeveloperName']}":dict(type=['null','object','string']) for o in views}
+    properties = {f"ListView_{o['SobjectType']}_{o['DeveloperName']}":dict(type=['null','object','string']) for o in views if o['SobjectType'] == "Contact"}
 
     for name in properties.keys():
         mdata = metadata.write(

@@ -187,6 +187,9 @@ def handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state
         lv_schema["replication_key"]
     )
 
+    # Get rid of the SCOPE for this tenant
+    lv_query = lv_query.replace("USING SCOPE mine", "")
+
     # Run the listview query
     for lv_rec in sf.query(lv_catalog_entry, state, query_override=lv_query):
         LOGGER.disabled = True

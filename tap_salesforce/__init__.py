@@ -518,6 +518,11 @@ def main_impl():
     CONFIG.update(args.config)
 
     sf = None
+    is_sandbox = (
+        CONFIG.get("base_uri") == "https://test.salesforce.com"
+        if CONFIG.get("base_uri")
+        else CONFIG.get("is_sandbox")
+    )
     try:
         sf = Salesforce(
             refresh_token=CONFIG['refresh_token'],
@@ -525,7 +530,7 @@ def main_impl():
             sf_client_secret=CONFIG['client_secret'],
             quota_percent_total=CONFIG.get('quota_percent_total'),
             quota_percent_per_run=CONFIG.get('quota_percent_per_run'),
-            is_sandbox=CONFIG.get('is_sandbox'),
+            is_sandbox=is_sandbox,
             select_fields_by_default=CONFIG.get('select_fields_by_default'),
             default_start_date=CONFIG.get('start_date'),
             api_type=CONFIG.get('api_type'),

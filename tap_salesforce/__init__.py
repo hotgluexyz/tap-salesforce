@@ -11,6 +11,7 @@ from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 LOGGER = singer.get_logger()
 
@@ -252,7 +253,70 @@ def get_views_list(sf):
 
     return responses
 
+def discover_stream(sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references):
+    # Skip blacklisted SF objects depending on the api_type in use
+    # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
+    if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
+        or sobject_name.endswith("ChangeEvent"):
+        return
 
+    # append
+
+    sobject_description = sf.describe(sobject_name)
+
+    if sobject_description is None:
+        return
+
+    # Cache customSetting and Tag objects to check for blacklisting after
+    # all objects have been described
+    if sobject_description.get("customSetting"):
+        sf_custom_setting_objects.append(sobject_name)
+    elif sobject_name.endswith("__Tag"):
+        relationship_field = next(
+            (f for f in sobject_description["fields"] if f.get("relationshipName") == "Item"),
+            None)
+        if relationship_field:
+            # Map {"Object":"Object__Tag"}
+            object_to_tag_references[relationship_field["referenceTo"]
+                                        [0]] = sobject_name
+
+    fields = sobject_description['fields']
+    replication_key = get_replication_key(sobject_name, fields)
+
+    # Salesforce Objects are skipped when they do not have an Id field
+    if not [f["name"] for f in fields if f["name"]=="Id"]:
+        LOGGER.info(
+            "Skipping Salesforce Object %s, as it has no Id field",
+            sobject_name)
+        return
+
+    entry = generate_schema(fields, sf, sobject_name, replication_key)
+    entries.append(entry)
+
+def run_concurrently(fn, fn_args_list):
+    all_tasks = []
+
+    # This function is used to garantee the right other of returns.
+    # It saves the index of the `fn_args` used to call `fn`.
+    def fn_with_index(index, *fn_args):
+        result = fn(*fn_args)
+        return (index, result)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        for (index, fn_args) in enumerate(fn_args_list):
+            all_tasks.append(executor.submit(
+                fn_with_index,
+                *[index, *fn_args]
+            ))
+
+    results = []
+
+    for future in as_completed(all_tasks):
+        (index, result) = future.result()
+        # Insert the result in the right index of the list
+        results.insert(index, result)
+
+    return results
 
 # pylint: disable=too-many-branches,too-many-statements
 def do_discover(sf):
@@ -271,6 +335,20 @@ def do_discover(sf):
     if sf.api_type == 'BULK' and not Bulk(sf).has_permissions():
         raise TapSalesforceBulkAPIDisabledException('This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code')
 
+    objects_list = sorted(objects_to_discover)
+    start_counter = 0
+    concurrency_limit = 25
+
+    while start_counter < len(objects_list):
+        end_counter = start_counter + concurrency_limit 
+        if end_counter >= len(objects_list):
+            end_counter = len(objects_list)
+
+        chunk = objects_list[start_counter:end_counter]
+        chunk_args = [[sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references] for sobject_name in chunk]
+        run_concurrently(discover_stream, chunk_args)
+        start_counter = end_counter
+
     for sobject_name in sorted(objects_to_discover):
 
         # Skip blacklisted SF objects depending on the api_type in use
@@ -278,6 +356,8 @@ def do_discover(sf):
         if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
            or sobject_name.endswith("ChangeEvent"):
             continue
+
+        # append
 
         sobject_description = sf.describe(sobject_name)
 

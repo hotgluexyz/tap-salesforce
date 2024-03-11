@@ -253,14 +253,16 @@ def get_views_list(sf):
 
     return responses
 
-def discover_stream(sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references):
+def discover_stream(
+    sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references
+):
     # Skip blacklisted SF objects depending on the api_type in use
     # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
-    if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
-        or sobject_name.endswith("ChangeEvent"):
+    if (
+        sobject_name in sf.get_blacklisted_objects()
+        and sobject_name not in ACTIVITY_STREAMS
+    ) or sobject_name.endswith("ChangeEvent"):
         return
-
-    # append
 
     sobject_description = sf.describe(sobject_name)
 
@@ -273,25 +275,32 @@ def discover_stream(sf, sobject_name, entries, sf_custom_setting_objects, object
         sf_custom_setting_objects.append(sobject_name)
     elif sobject_name.endswith("__Tag"):
         relationship_field = next(
-            (f for f in sobject_description["fields"] if f.get("relationshipName") == "Item"),
-            None)
+            (
+                f
+                for f in sobject_description["fields"]
+                if f.get("relationshipName") == "Item"
+            ),
+            None,
+        )
         if relationship_field:
             # Map {"Object":"Object__Tag"}
-            object_to_tag_references[relationship_field["referenceTo"]
-                                        [0]] = sobject_name
+            object_to_tag_references[
+                relationship_field["referenceTo"][0]
+            ] = sobject_name
 
-    fields = sobject_description['fields']
+    fields = sobject_description["fields"]
     replication_key = get_replication_key(sobject_name, fields)
 
     # Salesforce Objects are skipped when they do not have an Id field
-    if not [f["name"] for f in fields if f["name"]=="Id"]:
+    if not [f["name"] for f in fields if f["name"] == "Id"]:
         LOGGER.info(
-            "Skipping Salesforce Object %s, as it has no Id field",
-            sobject_name)
+            "Skipping Salesforce Object %s, as it has no Id field", sobject_name
+        )
         return
 
     entry = generate_schema(fields, sf, sobject_name, replication_key)
     entries.append(entry)
+
 
 def run_concurrently(fn, fn_args_list):
     all_tasks = []
@@ -304,10 +313,7 @@ def run_concurrently(fn, fn_args_list):
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         for (index, fn_args) in enumerate(fn_args_list):
-            all_tasks.append(executor.submit(
-                fn_with_index,
-                *[index, *fn_args]
-            ))
+            all_tasks.append(executor.submit(fn_with_index, *[index, *fn_args]))
 
     results = []
 
@@ -323,7 +329,7 @@ def do_discover(sf):
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 
-    objects_to_discover = {o['name'] for o in global_description['sobjects']}
+    objects_to_discover = {o["name"] for o in global_description["sobjects"]}
 
     sf_custom_setting_objects = []
     object_to_tag_references = {}
@@ -332,20 +338,30 @@ def do_discover(sf):
     entries = []
 
     # Check if the user has BULK API enabled
-    if sf.api_type == 'BULK' and not Bulk(sf).has_permissions():
-        raise TapSalesforceBulkAPIDisabledException('This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code')
+    if sf.api_type == "BULK" and not Bulk(sf).has_permissions():
+        raise TapSalesforceBulkAPIDisabledException(
+            'This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code'
+        )
 
     objects_list = sorted(objects_to_discover)
     start_counter = 0
     concurrency_limit = 25
 
     while start_counter < len(objects_list):
-        end_counter = start_counter + concurrency_limit 
+        end_counter = start_counter + concurrency_limit
         if end_counter >= len(objects_list):
             end_counter = len(objects_list)
 
         chunk = objects_list[start_counter:end_counter]
-        chunk_args = [[sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references] for sobject_name in chunk]
+        chunk_args = [
+            [
+                sf,
+                sobject_name,
+                entries,
+                sf_custom_setting_objects,
+                object_to_tag_references,
+            ]
+            for sobject_name in chunk]
         run_concurrently(discover_stream, chunk_args)
         start_counter = end_counter
 
@@ -356,8 +372,6 @@ def do_discover(sf):
         if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
            or sobject_name.endswith("ChangeEvent"):
             continue
-
-        # append
 
         sobject_description = sf.describe(sobject_name)
 

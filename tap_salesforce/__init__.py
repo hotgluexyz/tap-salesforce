@@ -364,45 +364,6 @@ def do_discover(sf):
             for sobject_name in chunk]
         run_concurrently(discover_stream, chunk_args)
         start_counter = end_counter
-
-    for sobject_name in sorted(objects_to_discover):
-
-        # Skip blacklisted SF objects depending on the api_type in use
-        # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
-        if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
-           or sobject_name.endswith("ChangeEvent"):
-            continue
-
-        sobject_description = sf.describe(sobject_name)
-
-        if sobject_description is None:
-            continue
-
-        # Cache customSetting and Tag objects to check for blacklisting after
-        # all objects have been described
-        if sobject_description.get("customSetting"):
-            sf_custom_setting_objects.append(sobject_name)
-        elif sobject_name.endswith("__Tag"):
-            relationship_field = next(
-                (f for f in sobject_description["fields"] if f.get("relationshipName") == "Item"),
-                None)
-            if relationship_field:
-                # Map {"Object":"Object__Tag"}
-                object_to_tag_references[relationship_field["referenceTo"]
-                                         [0]] = sobject_name
-
-        fields = sobject_description['fields']
-        replication_key = get_replication_key(sobject_name, fields)
-
-        # Salesforce Objects are skipped when they do not have an Id field
-        if not [f["name"] for f in fields if f["name"]=="Id"]:
-            LOGGER.info(
-                "Skipping Salesforce Object %s, as it has no Id field",
-                sobject_name)
-            continue
-
-        entry = generate_schema(fields, sf, sobject_name, replication_key)
-        entries.append(entry)
     
     # Handle ListViews
     views = get_views_list(sf)

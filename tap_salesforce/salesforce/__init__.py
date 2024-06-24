@@ -168,7 +168,7 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
     elif sf_type == "int":
         property_schema['type'] = "integer"
     elif sf_type == "time":
-        property_schema['type'] = "string"    
+        property_schema['type'] = "string"
     elif sf_type in LOOSE_TYPES:
         # Force string type
         property_schema['type'] = "string"

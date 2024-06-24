@@ -168,10 +168,10 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
     elif sf_type == "int":
         property_schema['type'] = "integer"
     elif sf_type == "time":
-        property_schema['type'] = "string"
-    elif sf_type == "anyType":
-        property_schema['type'] = "string"
+        property_schema['type'] = "string"    
     elif sf_type in LOOSE_TYPES:
+        # Force string type
+        property_schema['type'] = "string"
         return property_schema, mdata  # No type = all types
     elif sf_type in BINARY_TYPES:
         mdata = metadata.write(mdata, ('properties', field_name), "inclusion", "unsupported")

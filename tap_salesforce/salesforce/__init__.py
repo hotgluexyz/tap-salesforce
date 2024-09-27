@@ -235,6 +235,7 @@ class Salesforce():
         self.version = api_version or "41.0"
         self.data_url = "{}/services/data/v" + self.version + "/{}"
         self.pk_chunking = False
+        self.filters_tried = []
 
         # validate start_date
         singer_utils.strptime(default_start_date)
@@ -409,24 +410,40 @@ class Salesforce():
         query = "SELECT {} FROM {}".format(",".join(selected_properties), catalog_entry['stream'])
 
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-        replication_key = catalog_metadata.get((), {}).get('replication-key')
-
-        if replication_key:
+        valid_filtering_replication_key = self.get_valid_filtering_replication_key(catalog_metadata)
+        if valid_filtering_replication_key:
             where_clause = " WHERE {} > {} ".format(
-                replication_key,
+                valid_filtering_replication_key,
                 start_date)
             if end_date:
-                end_date_clause = " AND {} < {}".format(replication_key, end_date)
+                end_date_clause = " AND {} < {}".format(valid_filtering_replication_key, end_date)
             else:
                 end_date_clause = ""
 
-            order_by = " ORDER BY {} ASC".format(replication_key)
             if order_by_clause:
+                order_by = " ORDER BY {} ASC".format(valid_filtering_replication_key)
                 return query + where_clause + end_date_clause + order_by
 
             return query + where_clause + end_date_clause
         else:
             return query
+
+    def filtering_can_be_done_with(self, replication_key):
+        if replication_key in self.filters_tried:
+            return False
+        self.filters_tried.append(replication_key)
+        return True
+
+    def get_valid_filtering_replication_key(self, catalog_metadata):
+        replication_key = None
+        base_catalog_metadata = catalog_metadata.get((), {})
+        if 'replication-key' in base_catalog_metadata and self.filtering_can_be_done_with(base_catalog_metadata['replication-key']):
+            return base_catalog_metadata['replication-key']
+        if 'valid-replication-keys' in base_catalog_metadata:
+            for possible_replication_key in base_catalog_metadata['valid-replication-keys']:
+                if self.filtering_can_be_done_with(possible_replication_key):
+                    return possible_replication_key
+        return replication_key
 
     def query(self, catalog_entry, state, query_override=None):
         if state["bookmarks"].get("ListView"):

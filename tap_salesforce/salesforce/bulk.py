@@ -18,6 +18,7 @@ BATCH_STATUS_POLLING_SLEEP = 20
 PK_CHUNKED_BATCH_STATUS_POLLING_SLEEP = 60
 ITER_CHUNK_SIZE = 1024
 DEFAULT_CHUNK_SIZE = 100000 # Max is 250000
+MAX_RETRIES = 3
 
 LOGGER = singer.get_logger()
 
@@ -142,8 +143,13 @@ class Bulk():
                     LOGGER.info("Finished syncing batch %s. Removing batch from state.", completed_batch_id)
                     LOGGER.info("Batches to go: %d", len(state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"]))
                     singer.write_state(state)
+            elif "MALFORMED_QUERY" in batch_status['stateMessage'] and len(self.sf.filters_tried) < MAX_RETRIES:
+                LOGGER.warning(f"{batch_status['stateMessage']}")
+                LOGGER.warning(f"Trying again ...")
+                for record in self._bulk_query(catalog_entry, state):
+                     yield record
             else:
-                raise TapSalesforceException(batch_status['stateMessage'])
+                raise TapSalesforceException(batch_status['stateMessage'] + f" [Filters tried] {self.sf.filters_tried}")
         else:
             for result in self.get_batch_results(job_id, batch_id, catalog_entry):
                 yield result

@@ -8,6 +8,7 @@ import singer
 from singer import metrics
 import requests
 from requests.exceptions import RequestException
+from concurrent.futures import ThreadPoolExecutor
 
 import xmltodict
 
@@ -112,41 +113,37 @@ class Bulk():
                "Failed to write query result" in failure_message
 
     def _bulk_query(self, catalog_entry, state):
-        job_id = self._create_job(catalog_entry)
         start_date = self.sf.get_start_date(state, catalog_entry)
+        batch_status = self._bulk_query_with_pk_chunking(catalog_entry, start_date)
+        job_id = batch_status['job_id']
+        self.sf.pk_chunking = True
+        # Write job ID and batch state for resumption
+        tap_stream_id = catalog_entry['tap_stream_id']
+        state = singer.write_bookmark(state, tap_stream_id, 'JobID', job_id)
+        state = singer.write_bookmark(state, tap_stream_id, 'BatchIDs', batch_status['completed'][:])
 
-        batch_id = self._add_batch(catalog_entry, job_id, start_date)
+        # Parallelize the batch result processing
+        with ThreadPoolExecutor() as executor:
+            futures = [
+                executor.submit(self.process_batch, job_id, completed_batch_id, catalog_entry, state)
+                for completed_batch_id in batch_status['completed']
+            ]
 
-        self._close_job(job_id)
+            # Process the results as they complete
+            for future in futures:
+                for result in future.result():
+                    yield result
 
-        batch_status = self._poll_on_batch_status(job_id, batch_id)
+    def process_batch(self, job_id, batch_id, catalog_entry, state):
+        """Process a single batch and yield results."""
+        for result in self.get_batch_results(job_id, batch_id, catalog_entry):
+            yield result
 
-        if batch_status['state'] == 'Failed':
-            if self._can_pk_chunk_job(batch_status['stateMessage']):
-                batch_status = self._bulk_query_with_pk_chunking(catalog_entry, start_date)
-                job_id = batch_status['job_id']
-
-                # Set pk_chunking to True to indicate that we should write a bookmark differently
-                self.sf.pk_chunking = True
-
-                # Add the bulk Job ID and its batches to the state so it can be resumed if necessary
-                tap_stream_id = catalog_entry['tap_stream_id']
-                state = singer.write_bookmark(state, tap_stream_id, 'JobID', job_id)
-                state = singer.write_bookmark(state, tap_stream_id, 'BatchIDs', batch_status['completed'][:])
-
-                for completed_batch_id in batch_status['completed']:
-                    for result in self.get_batch_results(job_id, completed_batch_id, catalog_entry):
-                        yield result
-                    # Remove the completed batch ID and write state
-                    state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"].remove(completed_batch_id)
-                    LOGGER.info("Finished syncing batch %s. Removing batch from state.", completed_batch_id)
-                    LOGGER.info("Batches to go: %d", len(state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"]))
-                    singer.write_state(state)
-            else:
-                raise TapSalesforceException(batch_status['stateMessage'])
-        else:
-            for result in self.get_batch_results(job_id, batch_id, catalog_entry):
-                yield result
+        # Update state and log progress
+        state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"].remove(batch_id)
+        LOGGER.info("Finished syncing batch %s. Removing batch from state.", batch_id)
+        LOGGER.info("Batches to go: %d", len(state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"]))
+        singer.write_state(state)
 
     def _bulk_query_with_pk_chunking(self, catalog_entry, start_date):
         LOGGER.info("Retrying Bulk Query with PK Chunking")
@@ -284,45 +281,70 @@ class Bulk():
         return batch['batchInfo']
 
     def get_batch_results(self, job_id, batch_id, catalog_entry):
-        """Given a job_id and batch_id, queries the batches results and reads
-        CSV lines yielding each line as a record."""
+        """Given a job_id and batch_id, queries the batch results and reads
+        CSV lines, yielding each line as a record."""
         headers = self._get_bulk_headers()
-        endpoint = "job/{}/batch/{}/result".format(job_id, batch_id)
+        endpoint = f"job/{job_id}/batch/{batch_id}/result"
         url = self.bulk_url.format(self.sf.instance_url, endpoint)
 
+        # Timing the request
         with metrics.http_request_timer("batch_result_list") as timer:
             timer.tags['sobject'] = catalog_entry['stream']
             batch_result_resp = self.sf._make_request('GET', url, headers=headers)
 
-        # Returns a Dict where input:
-        #   <result-list><result>1</result><result>2</result></result-list>
-        # will return: {'result', ['1', '2']}
-        batch_result_list = xmltodict.parse(batch_result_resp.text,
-                                            xml_attribs=False,
-                                            force_list={'result'})['result-list']
+        # Parse the result list from the XML response
+        batch_result_list = xmltodict.parse(batch_result_resp.text, xml_attribs=False, force_list={'result'})['result-list']
 
-        for result in batch_result_list['result']:
-            endpoint = "job/{}/batch/{}/result/{}".format(job_id, batch_id, result)
+        # Function to fetch and process each result in parallel
+        def process_result(self, job_id, batch_id, result):
+            endpoint = f"job/{job_id}/batch/{batch_id}/result/{result}"
             url = self.bulk_url.format(self.sf.instance_url, endpoint)
-            headers['Content-Type'] = 'text/csv'
+            headers = {'Content-Type': 'text/csv'}
 
-            with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8") as csv_file:
-                resp = self.sf._make_request('GET', url, headers=headers, stream=True)
-                for chunk in resp.iter_content(chunk_size=ITER_CHUNK_SIZE, decode_unicode=True):
-                    if chunk:
-                        # Replace any NULL bytes in the chunk so it can be safely given to the CSV reader
-                        csv_file.write(chunk.replace('\0', ''))
+            # Use a context manager for temporary file handling
+            with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8", delete=False) as csv_file:
+                # Stream the CSV content from Salesforce Bulk API
+                try:
+                    resp = self.sf._make_request('GET', url, headers=headers, stream=True)
+                    resp.raise_for_status()  # Ensure we handle errors from the request
 
-                csv_file.seek(0)
-                csv_reader = csv.reader(csv_file,
-                                        delimiter=',',
-                                        quotechar='"')
+                    # Write chunks of CSV data to the temp file
+                    for chunk in resp.iter_content(chunk_size=ITER_CHUNK_SIZE, decode_unicode=True):
+                        if chunk:
+                            csv_file.write(chunk.replace('\0', ''))  # Replace NULL bytes
 
-                column_name_list = next(csv_reader)
+                    csv_file.seek(0)  # Move back to the start of the file after writing
 
+                except requests.exceptions.RequestException as e:
+                    # Handle any request errors (timeouts, connection errors, etc.)
+                    raise TapSalesforceException(f"Error fetching results: {str(e)}")
+
+            # Now process the CSV file
+            with open(csv_file.name, mode='r', encoding='utf8') as f:
+                csv_reader = csv.reader(f, delimiter=',', quotechar='"')
+
+                try:
+                    # Read column names from the first line
+                    column_name_list = next(csv_reader)
+                except StopIteration:
+                    # Handle case where no data is returned (empty CSV)
+                    raise TapSalesforceException(f"No data found in batch {batch_id} result.")
+
+                # Process each row in the CSV file
                 for line in csv_reader:
-                    rec = dict(zip(column_name_list, line))
-                    yield rec
+                    record = dict(zip(column_name_list, line))
+                    yield record
+
+        # Use ThreadPoolExecutor to parallelize the processing of results
+        with ThreadPoolExecutor() as executor:
+            # Submit tasks to the executor for parallel execution
+            futures = [executor.submit(process_result, result) for result in batch_result_list['result']]
+
+            # Yield the results as they complete
+            for future in futures:
+                # `future.result()` is a generator, so yield each record from it
+                for record in future.result():
+                    yield record
 
     def _close_job(self, job_id):
         endpoint = "job/{}".format(job_id)

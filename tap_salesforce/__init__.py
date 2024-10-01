@@ -12,7 +12,7 @@ from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
 
-import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 
 
@@ -267,28 +267,25 @@ def do_discover(sf):
     sf_custom_setting_objects = []
     object_to_tag_references = {}
 
-    # For each SF Object describe it, loop its fields and build a schema
     entries = []
 
     # Check if the user has BULK API enabled
     if sf.api_type == 'BULK' and not Bulk(sf).has_permissions():
         raise TapSalesforceBulkAPIDisabledException('This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code')
 
-    for sobject_name in sorted(objects_to_discover):
-
-        # Skip blacklisted SF objects depending on the api_type in use
-        # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
+    # Function to describe an object and generate its schema
+    def describe_and_process(sobject_name):
+        # Skip blacklisted SF objects
         if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
            or sobject_name.endswith("ChangeEvent"):
-            continue
+            return None
 
         sobject_description = sf.describe(sobject_name)
 
         if sobject_description is None:
-            continue
+            return None
 
-        # Cache customSetting and Tag objects to check for blacklisting after
-        # all objects have been described
+        # Cache customSetting and Tag objects
         if sobject_description.get("customSetting"):
             sf_custom_setting_objects.append(sobject_name)
         elif sobject_name.endswith("__Tag"):
@@ -296,108 +293,63 @@ def do_discover(sf):
                 (f for f in sobject_description["fields"] if f.get("relationshipName") == "Item"),
                 None)
             if relationship_field:
-                # Map {"Object":"Object__Tag"}
-                object_to_tag_references[relationship_field["referenceTo"]
-                                         [0]] = sobject_name
+                object_to_tag_references[relationship_field["referenceTo"][0]] = sobject_name
 
         fields = sobject_description['fields']
         replication_key = get_replication_key(sobject_name, fields)
 
-        # Salesforce Objects are skipped when they do not have an Id field
-        if not [f["name"] for f in fields if f["name"]=="Id"]:
-            LOGGER.info(
-                "Skipping Salesforce Object %s, as it has no Id field",
-                sobject_name)
-            continue
+        if not any(f["name"] == "Id" for f in fields):
+            LOGGER.info("Skipping Salesforce Object %s, as it has no Id field", sobject_name)
+            return None
 
         entry = generate_schema(fields, sf, sobject_name, replication_key)
-        entries.append(entry)
-    
+        return entry
+
+    # Using ThreadPoolExecutor to parallelize the describing of SF objects
+    with ThreadPoolExecutor() as executor:
+        future_to_object = {executor.submit(describe_and_process, sobject_name): sobject_name
+                            for sobject_name in sorted(objects_to_discover)}
+
+        # Collect entries from completed futures
+        for future in as_completed(future_to_object):
+            entry = future.result()
+            if entry:
+                entries.append(entry)
+
     # Handle ListViews
     views = get_views_list(sf)
-
     mdata = metadata.new()
-
-    properties = {f"ListView_{o['SobjectType']}_{o['DeveloperName']}":dict(type=['null','object','string']) for o in views}
-
+    properties = {f"ListView_{o['SobjectType']}_{o['DeveloperName']}": dict(type=['null', 'object', 'string']) for o in views}
     for name in properties.keys():
-        mdata = metadata.write(
-            mdata,('properties',name),'selected-by-default',True
-        )
-    
-    mdata = metadata.write(
-            mdata,
-            (),
-            'forced-replication-method',
-            {'replication-method': 'FULL_TABLE'})
-
+        mdata = metadata.write(mdata, ('properties', name), 'selected-by-default', True)
+    mdata = metadata.write(mdata, (), 'forced-replication-method', {'replication-method': 'FULL_TABLE'})
     mdata = metadata.write(mdata, (), 'table-key-properties', [])
-
-    schema = {
-        'type': 'object',
-        'additionalProperties': False,
-        'properties': properties
-    }
-
-    entry = {
-        'stream': "ListViews",
-        'tap_stream_id': "ListViews",
-        'schema': schema,
-        'metadata': metadata.to_list(mdata)
-    }
-
-    entries.append(entry)
+    schema = {'type': 'object', 'additionalProperties': False, 'properties': properties}
+    entries.append({'stream': "ListViews", 'tap_stream_id': "ListViews", 'schema': schema, 'metadata': metadata.to_list(mdata)})
 
     # Handle Reports
     if sf.list_reports is True:
         reports = get_reports_list(sf)
-
         mdata = metadata.new()
         properties = {}
-
         if reports:
             for report in reports:
                 field_name = f"Report_{report['DeveloperName']}"
                 properties[field_name] = dict(type=["null", "object", "string"]) 
-                mdata = metadata.write(
-                    mdata, ('properties', field_name), 'selected-by-default', False)
-
-            mdata = metadata.write(
-                mdata,
-                (),
-                'forced-replication-method',
-                {'replication-method': 'FULL_TABLE'})
-
+                mdata = metadata.write(mdata, ('properties', field_name), 'selected-by-default', False)
+            mdata = metadata.write(mdata, (), 'forced-replication-method', {'replication-method': 'FULL_TABLE'})
             mdata = metadata.write(mdata, (), 'table-key-properties', [])
+            schema = {'type': 'object', 'additionalProperties': False, 'properties': properties}
+            entries.append({'stream': "ReportList", 'tap_stream_id': "ReportList", 'schema': schema, 'metadata': metadata.to_list(mdata)})
 
-            schema = {
-                'type': 'object',
-                'additionalProperties': False,
-                'properties': properties
-            }
-
-            entry = {
-                'stream': "ReportList",
-                'tap_stream_id': "ReportList",
-                'schema': schema,
-                'metadata': metadata.to_list(mdata)
-            }
-
-            entries.append(entry)
-
-    # For each custom setting field, remove its associated tag from entries
-    # See Blacklisting.md for more information
-    unsupported_tag_objects = [object_to_tag_references[f]
-                               for f in sf_custom_setting_objects if f in object_to_tag_references]
+    # Remove unsupported tag objects
+    unsupported_tag_objects = [object_to_tag_references[f] for f in sf_custom_setting_objects if f in object_to_tag_references]
     if unsupported_tag_objects:
-        LOGGER.info( #pylint:disable=logging-not-lazy
-            "Skipping the following Tag objects, Tags on Custom Settings Salesforce objects " +
-            "are not supported by the Bulk API:")
+        LOGGER.info("Skipping the following Tag objects, Tags on Custom Settings Salesforce objects are not supported by the Bulk API:")
         LOGGER.info(unsupported_tag_objects)
-        entries = [e for e in entries if e['stream']
-                   not in unsupported_tag_objects]
+        entries = [e for e in entries if e['stream'] not in unsupported_tag_objects]
 
-    result = {'streams': entries}
+    result = {'streams': sorted(entries, key=lambda x: x['stream'])}
     json.dump(result, sys.stdout, indent=4)
 
 def do_sync(sf, catalog_entry, state, catalog,config=None):
@@ -570,7 +522,7 @@ def main_impl():
     catalog["streams"] = [c for c in catalog["streams"] if c["stream"] != "ListView"]
     catalog["streams"] = list_view + catalog["streams"]
 
-    # Create a dictionary with session details to pass to child processes
+    # Create a dictionary with session details to pass to threads
     sf_data = {
         'access_token': sf.access_token,
         'instance_url': sf.instance_url,
@@ -588,16 +540,20 @@ def main_impl():
         'api_version': CONFIG.get('api_version'),
     }
 
-    # Use multiprocessing to process the catalog entries in parallel
-    with multiprocessing.Manager() as manager:
-        managed_state = manager.dict(args.state)  # Shared state
+    # Use ThreadPoolExecutor to process the catalog entries in parallel using threads
+    with ThreadPoolExecutor() as executor:
+        # Partial function with shared session and config
+        process_func = partial(process_catalog_entry, sf_data=sf_data, state=args.state, catalog=catalog, config=CONFIG)
 
-        # Create a partial function with shared session and config
-        process_func = partial(process_catalog_entry, sf_data=sf_data, state=managed_state, catalog=catalog, config=CONFIG)
+        # Submit tasks to the executor for each stream
+        futures = [executor.submit(process_func, stream) for stream in catalog["streams"]]
 
-        # Parallel execution using multiprocessing.Pool
-        with multiprocessing.Pool(processes=8) as pool:
-            pool.map(process_func, catalog["streams"])
+        # Optionally wait for all tasks to complete and handle exceptions
+        for future in futures:
+            try:
+                future.result()  # This will raise any exceptions from the threads
+            except Exception as exc:
+                LOGGER.error(f"Error processing catalog entry: {exc}")
 
     if sf.rest_requests_attempted > 0:
         LOGGER.debug(
@@ -607,6 +563,7 @@ def main_impl():
         LOGGER.debug(
             "Replication used %s Bulk API jobs towards the Salesforce quota.",
             sf.jobs_completed)
+        
 
 def prepare_reports_streams(catalog):
     streams = catalog["streams"]

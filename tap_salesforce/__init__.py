@@ -232,33 +232,44 @@ def get_reports_list(sf):
             url = sf.instance_url+response_json.get("nextRecordsUrl")
     return output
 
+def process_list_view(sf, lv):
+    sobject = lv['SobjectType']
+    lv_id = lv['Id']
+    try:
+        sf.listview(sobject, lv_id)
+        return lv
+    except RequestException as e:
+        LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}")
+        return None
+
 def get_views_list(sf):
     if not sf.list_views:
         return []
+    
     headers = sf._get_standard_headers()
     endpoint = "queryAll"
     params = {'q': 'SELECT Id,Name,SobjectType,DeveloperName FROM ListView'}
     url = sf.data_url.format(sf.instance_url, endpoint)
 
     response = sf._make_request('GET', url, headers=headers, params=params)
-
+    
+    list_views = response.json().get("records", [])
     responses = []
 
-    for lv in response.json().get("records", []):
-        sobject = lv['SobjectType']
-        lv_id = lv['Id']
-        try: 
-            sf.listview(sobject,lv_id)
-            responses.append(lv)
-        except RequestException as e:
-            LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}")
+    with ThreadPoolExecutor() as executor:
+        futures = {executor.submit(process_list_view, sf, lv): lv for lv in list_views}
+        
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                responses.append(result)
 
     return responses
 
 
 
 # pylint: disable=too-many-branches,too-many-statements
-def do_discover(sf):
+def do_discover(sf: Salesforce):
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 
@@ -317,15 +328,16 @@ def do_discover(sf):
                 entries.append(entry)
 
     # Handle ListViews
-    views = get_views_list(sf)
-    mdata = metadata.new()
-    properties = {f"ListView_{o['SobjectType']}_{o['DeveloperName']}": dict(type=['null', 'object', 'string']) for o in views}
-    for name in properties.keys():
-        mdata = metadata.write(mdata, ('properties', name), 'selected-by-default', True)
-    mdata = metadata.write(mdata, (), 'forced-replication-method', {'replication-method': 'FULL_TABLE'})
-    mdata = metadata.write(mdata, (), 'table-key-properties', [])
-    schema = {'type': 'object', 'additionalProperties': False, 'properties': properties}
-    entries.append({'stream': "ListViews", 'tap_stream_id': "ListViews", 'schema': schema, 'metadata': metadata.to_list(mdata)})
+    if sf.list_views is True:
+        views = get_views_list(sf)
+        mdata = metadata.new()
+        properties = {f"ListView_{o['SobjectType']}_{o['DeveloperName']}": dict(type=['null', 'object', 'string']) for o in views}
+        for name in properties.keys():
+            mdata = metadata.write(mdata, ('properties', name), 'selected-by-default', True)
+        mdata = metadata.write(mdata, (), 'forced-replication-method', {'replication-method': 'FULL_TABLE'})
+        mdata = metadata.write(mdata, (), 'table-key-properties', [])
+        schema = {'type': 'object', 'additionalProperties': False, 'properties': properties}
+        entries.append({'stream': "ListViews", 'tap_stream_id': "ListViews", 'schema': schema, 'metadata': metadata.to_list(mdata)})
 
     # Handle Reports
     if sf.list_reports is True:

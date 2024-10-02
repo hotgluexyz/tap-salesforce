@@ -280,6 +280,46 @@ class Bulk():
 
         return batch['batchInfo']
 
+    # Function to fetch and process each result in parallel
+    def process_result(self, job_id, batch_id, result):
+        endpoint = f"job/{job_id}/batch/{batch_id}/result/{result}"
+        url = self.bulk_url.format(self.sf.instance_url, endpoint)
+        headers = {'Content-Type': 'text/csv'}
+
+        # Use a context manager for temporary file handling
+        with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8", delete=False) as csv_file:
+            # Stream the CSV content from Salesforce Bulk API
+            try:
+                resp = self.sf._make_request('GET', url, headers=headers, stream=True)
+                resp.raise_for_status()  # Ensure we handle errors from the request
+
+                # Write chunks of CSV data to the temp file
+                for chunk in resp.iter_content(chunk_size=ITER_CHUNK_SIZE, decode_unicode=True):
+                    if chunk:
+                        csv_file.write(chunk.replace('\0', ''))  # Replace NULL bytes
+
+                csv_file.seek(0)  # Move back to the start of the file after writing
+
+            except requests.exceptions.RequestException as e:
+                # Handle any request errors (timeouts, connection errors, etc.)
+                raise TapSalesforceException(f"Error fetching results: {str(e)}")
+
+        # Now process the CSV file
+        with open(csv_file.name, mode='r', encoding='utf8') as f:
+            csv_reader = csv.reader(f, delimiter=',', quotechar='"')
+
+            try:
+                # Read column names from the first line
+                column_name_list = next(csv_reader)
+            except StopIteration:
+                # Handle case where no data is returned (empty CSV)
+                raise TapSalesforceException(f"No data found in batch {batch_id} result.")
+
+            # Process each row in the CSV file
+            for line in csv_reader:
+                record = dict(zip(column_name_list, line))
+                yield record
+
     def get_batch_results(self, job_id, batch_id, catalog_entry):
         """Given a job_id and batch_id, queries the batch results and reads
         CSV lines, yielding each line as a record."""
@@ -295,50 +335,10 @@ class Bulk():
         # Parse the result list from the XML response
         batch_result_list = xmltodict.parse(batch_result_resp.text, xml_attribs=False, force_list={'result'})['result-list']
 
-        # Function to fetch and process each result in parallel
-        def process_result(self, job_id, batch_id, result):
-            endpoint = f"job/{job_id}/batch/{batch_id}/result/{result}"
-            url = self.bulk_url.format(self.sf.instance_url, endpoint)
-            headers = {'Content-Type': 'text/csv'}
-
-            # Use a context manager for temporary file handling
-            with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8", delete=False) as csv_file:
-                # Stream the CSV content from Salesforce Bulk API
-                try:
-                    resp = self.sf._make_request('GET', url, headers=headers, stream=True)
-                    resp.raise_for_status()  # Ensure we handle errors from the request
-
-                    # Write chunks of CSV data to the temp file
-                    for chunk in resp.iter_content(chunk_size=ITER_CHUNK_SIZE, decode_unicode=True):
-                        if chunk:
-                            csv_file.write(chunk.replace('\0', ''))  # Replace NULL bytes
-
-                    csv_file.seek(0)  # Move back to the start of the file after writing
-
-                except requests.exceptions.RequestException as e:
-                    # Handle any request errors (timeouts, connection errors, etc.)
-                    raise TapSalesforceException(f"Error fetching results: {str(e)}")
-
-            # Now process the CSV file
-            with open(csv_file.name, mode='r', encoding='utf8') as f:
-                csv_reader = csv.reader(f, delimiter=',', quotechar='"')
-
-                try:
-                    # Read column names from the first line
-                    column_name_list = next(csv_reader)
-                except StopIteration:
-                    # Handle case where no data is returned (empty CSV)
-                    raise TapSalesforceException(f"No data found in batch {batch_id} result.")
-
-                # Process each row in the CSV file
-                for line in csv_reader:
-                    record = dict(zip(column_name_list, line))
-                    yield record
-
         # Use ThreadPoolExecutor to parallelize the processing of results
         with ThreadPoolExecutor() as executor:
             # Submit tasks to the executor for parallel execution
-            futures = [executor.submit(process_result, result) for result in batch_result_list['result']]
+            futures = [executor.submit(self.process_result, job_id, batch_id, result) for result in batch_result_list['result']]
 
             # Yield the results as they complete
             for future in futures:

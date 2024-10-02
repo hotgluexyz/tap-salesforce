@@ -18,8 +18,7 @@ REQUIRED_CONFIG_KEYS = ['refresh_token',
                         'client_id',
                         'client_secret',
                         'start_date',
-                        'api_type',
-                        'select_fields_by_default']
+                        'api_type']
 
 CONFIG = {
     'refresh_token': None,
@@ -105,17 +104,22 @@ def create_property_schema(field, mdata):
     return (property_schema, mdata)
 
 
-def generate_schema(fields, sf, sobject_name, replication_key):
+def generate_schema(fields, sf, sobject_name, replication_key, sobject_description):
     unsupported_fields = set()
     mdata = metadata.new()
     properties = {}
-
+    sobject_description.pop('fields')
+    fields_sobject = {f['name']: f for f in fields}
     # Loop over the object's fields
     for f in fields:
         field_name = f['name']
 
-        property_schema, mdata = create_property_schema(
-            f, mdata)
+        property_schema, mdata = create_property_schema(f, mdata)
+        property_schema["field_meta"] = {
+            "label": fields_sobject[field_name]["label"],
+            "updatable": fields_sobject[field_name]["updateable"],
+            "name": fields_sobject[field_name]["name"]
+        }
 
         # Compound Address fields and geolocations cannot be queried by the Bulk API
         if f['type'] in ("address", "location") and sf.api_type == tap_salesforce.salesforce.BULK_API_TYPE:
@@ -133,13 +137,6 @@ def generate_schema(fields, sf, sobject_name, replication_key):
         if field_pair in sf.get_blacklisted_fields():
             unsupported_fields.add(
                 (field_name, sf.get_blacklisted_fields()[field_pair]))
-
-        inclusion = metadata.get(
-            mdata, ('properties', field_name), 'inclusion')
-
-        if sf.select_fields_by_default and inclusion != 'unsupported':
-            mdata = metadata.write(
-                mdata, ('properties', field_name), 'selected-by-default', True)
 
         properties[field_name] = property_schema
 
@@ -166,11 +163,6 @@ def generate_schema(fields, sf, sobject_name, replication_key):
     # Any property added to unsupported_fields has metadata generated and
     # removed
     for prop, description in filtered_unsupported_fields:
-        if metadata.get(mdata, ('properties', prop),
-                        'selected-by-default'):
-            metadata.delete(
-                mdata, ('properties', prop), 'selected-by-default')
-
         mdata = metadata.write(
             mdata, ('properties', prop), 'unsupported-description', description)
         mdata = metadata.write(
@@ -200,7 +192,13 @@ def generate_schema(fields, sf, sobject_name, replication_key):
         'stream': sobject_name,
         'tap_stream_id': sobject_name,
         'schema': schema,
-        'metadata': metadata.to_list(mdata)
+        'metadata': metadata.to_list(mdata),
+        'stream_meta': {
+            'name': sobject_description["name"],
+            'label': sobject_description["label"],
+            'triggerable': sobject_description["triggerable"],
+            'searchable': sobject_description["searchable"]
+        }
     }
 
     return entry
@@ -244,7 +242,7 @@ def get_views_list(sf):
     for lv in response.json().get("records", []):
         sobject = lv['SobjectType']
         lv_id = lv['Id']
-        try: 
+        try:
             sf.listview(sobject,lv_id)
             responses.append(lv)
         except RequestException as e:
@@ -272,7 +270,6 @@ def do_discover(sf:Salesforce):
         raise TapSalesforceBulkAPIDisabledException('This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code')
 
     for sobject_name in sorted(objects_to_discover):
-
         # Skip blacklisted SF objects depending on the api_type in use
         # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
         if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
@@ -308,21 +305,18 @@ def do_discover(sf:Salesforce):
                 sobject_name)
             continue
 
-        entry = generate_schema(fields, sf, sobject_name, replication_key)
+        entry = generate_schema(fields, sf, sobject_name, replication_key, sobject_description)
         entries.append(entry)
-    
+
     # Handle ListViews
     views = get_views_list(sf)
 
     mdata = metadata.new()
 
-    properties = {f"ListView_{o['SobjectType']}_{o['DeveloperName']}":dict(type=['null','object','string']) for o in views}
+    properties = {
+        f"ListView_{o['SobjectType']}_{o['DeveloperName']}": dict(type=['null','object','string']) for o in views
+    }
 
-    for name in properties.keys():
-        mdata = metadata.write(
-            mdata,('properties',name),'selected-by-default',True
-        )
-    
     mdata = metadata.write(
             mdata,
             (),
@@ -356,9 +350,7 @@ def do_discover(sf:Salesforce):
         if reports:
             for report in reports:
                 field_name = f"Report_{report['DeveloperName']}"
-                properties[field_name] = dict(type=["null", "object", "string"]) 
-                mdata = metadata.write(
-                    mdata, ('properties', field_name), 'selected-by-default', False)
+                properties[field_name] = dict(type=["null", "object", "string"])
 
             mdata = metadata.write(
                 mdata,
@@ -520,7 +512,6 @@ def main_impl():
             quota_percent_total=CONFIG.get('quota_percent_total'),
             quota_percent_per_run=CONFIG.get('quota_percent_per_run'),
             is_sandbox=is_sandbox,
-            select_fields_by_default=CONFIG.get('select_fields_by_default'),
             default_start_date=CONFIG.get('start_date'),
             api_type=CONFIG.get('api_type'),
             list_reports=CONFIG.get('list_reports'),
@@ -559,10 +550,10 @@ def prepare_reports_streams(catalog):
                     report_name = meta["breadcrumb"][1]
                     report_stream = create_report_stream(report_name)
                     streams.append(report_stream)
-    catalog["streams"] = streams  
+    catalog["streams"] = streams
     #pop ReportList from list of Streams
-    catalog["streams"] = [i for i in catalog["streams"] if not (i['stream'] == "ReportList")]          
-    return catalog           
+    catalog["streams"] = [i for i in catalog["streams"] if not (i['stream'] == "ReportList")]
+    return catalog
 
 def create_report_stream(report_name):
         mdata = metadata.new()
@@ -575,8 +566,6 @@ def create_report_stream(report_name):
                 property_schema = dict(type=["null", "boolean"])
             else:
                 property_schema = dict(type=["null", "object", "string"])
-            mdata = metadata.write(
-                mdata, ('properties', field_name), 'selected-by-default', True)
             mdata = metadata.write(
                 mdata, ('properties', field_name), 'selected', True)    
 

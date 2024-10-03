@@ -222,7 +222,6 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
     start_time = singer_utils.now()
 
     LOGGER.info('Syncing Salesforce data for stream %s', stream)
-    records_post = []
     
     if "/" in state["current_stream"]:
         # get current name
@@ -366,8 +365,6 @@ def sync_list_views_stream(sf, catalog_entry, state, input_state, catalog, repli
             for isob in Id_Sobject:
                 if selected_list==f"ListView_{isob['SobjectType']}_{isob['DeveloperName']}":
                     selected_lists_names.append(isob)
-
-    replication_key_value = replication_key and singer_utils.strptime_with_tz(rec[replication_key])
 
     for list_info in selected_lists_names:
         sobject = list_info['SobjectType']

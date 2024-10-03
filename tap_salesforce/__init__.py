@@ -13,7 +13,6 @@ from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import partial
 
 
 LOGGER = singer.get_logger()
@@ -555,10 +554,10 @@ def main_impl():
     # Use ThreadPoolExecutor to process the catalog entries in parallel using threads
     with ThreadPoolExecutor() as executor:
         # Partial function with shared session and config
-        process_func = partial(process_catalog_entry, sf_data=sf_data, state=args.state, catalog=catalog, config=CONFIG)
+        state = args.state
 
         # Submit tasks to the executor for each stream
-        futures = [executor.submit(process_func, stream) for stream in catalog["streams"]]
+        futures = [executor.submit(process_catalog_entry, stream, sf_data, state, catalog, CONFIG) for stream in catalog["streams"]]
 
         # Optionally wait for all tasks to complete and handle exceptions
         for future in futures:

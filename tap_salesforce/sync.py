@@ -204,10 +204,7 @@ def handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state
                 time_extracted=start_time))
 
 def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):
-    download_files = False
-    if "download_files" in config:
-        if config['download_files']==True:
-            download_files = True
+    download_files = config.get("download_files", False)
     chunked_bookmark = singer_utils.strptime_with_tz(sf.get_start_date(state, catalog_entry))
     stream = catalog_entry['stream']
     schema = catalog_entry['schema']

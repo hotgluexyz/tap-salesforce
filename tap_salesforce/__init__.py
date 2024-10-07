@@ -286,8 +286,7 @@ def do_discover(sf: Salesforce):
     # Function to describe an object and generate its schema
     def describe_and_process(sobject_name):
         # Skip blacklisted SF objects
-        if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
-           or sobject_name.endswith("ChangeEvent"):
+        if sobject_name.endswith("ChangeEvent"):
             return None
 
         sobject_description = sf.describe(sobject_name)

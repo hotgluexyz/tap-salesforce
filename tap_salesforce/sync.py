@@ -204,10 +204,7 @@ def handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state
                 time_extracted=start_time))
 
 def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):
-    download_files = False
-    if "download_files" in config:
-        if config['download_files']==True:
-            download_files = True
+    download_files = config.get("download_files", False)
     chunked_bookmark = singer_utils.strptime_with_tz(sf.get_start_date(state, catalog_entry))
     stream = catalog_entry['stream']
     schema = catalog_entry['schema']
@@ -222,7 +219,6 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
     start_time = singer_utils.now()
 
     LOGGER.info('Syncing Salesforce data for stream %s', stream)
-    records_post = []
     
     if "/" in state["current_stream"]:
         # get current name
@@ -248,128 +244,63 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             singer_utils.strftime(chunked_bookmark))
 
     if catalog_entry["stream"].startswith("Report_"):
-        report_name = catalog_entry["stream"].split("Report_", 1)[1]
+        sync_report_streams(sf, catalog_entry, stream, schema, stream_alias, stream_version, start_time)
+        return
+    if "ListViews" == catalog_entry["stream"]:
+        sync_list_views_stream(sf, catalog_entry, state, input_state, catalog, replication_key, start_time)
+        return
         
-        reports = []
-        done = False
-        headers = sf._get_standard_headers()
-        endpoint = "queryAll"
-        params = {'q': 'SELECT Id,DeveloperName FROM Report'}
-        url = sf.data_url.format(sf.instance_url, endpoint)
+    query_response = sf.query(catalog_entry, state)
+    if catalog_entry["stream"] in ACTIVITY_STREAMS:
+        start_date_str = sf.get_start_date(state, catalog_entry)
+        start_date = singer_utils.strptime_with_tz(start_date_str)
+        start_date = singer_utils.strftime(start_date)
 
-        while not done:
-            response = sf._make_request('GET', url, headers=headers, params=params)
-            response_json = response.json()
-            done = response_json.get("done")
-            reports.extend(response_json.get("records", []))
-            if not done:
-                url = sf.instance_url+response_json.get("nextRecordsUrl")
+        selected_properties = sf._get_selected_properties(catalog_entry)
 
-        report = [r for r in reports if report_name==r["DeveloperName"]][0]
-        report_id = report["Id"]
+        query_map = {
+            "ActivityHistory": "ActivityHistories",
+            "OpenActivity": "OpenActivities"
+        }
 
-        endpoint = f"analytics/reports/{report_id}"
-        url = sf.data_url.format(sf.instance_url, endpoint)
-        response = sf._make_request('GET', url, headers=headers)
+        query_field = query_map[catalog_entry['stream']]
 
+        query = "SELECT {} FROM {}".format(",".join(selected_properties), query_field)
+        query = f"SELECT ({query}) FROM Contact"
+
+        catalog_metadata = metadata.to_map(catalog_entry['metadata'])
+        replication_key = catalog_metadata.get((), {}).get('replication-key')
+
+        order_by = ""
+        if replication_key:
+            where_clause = " WHERE {} > {} ".format(
+                replication_key,
+                start_date)
+            order_by = " ORDER BY {} ASC".format(replication_key)
+            query = query + where_clause + order_by
+
+        def unwrap_query(query_response, query_field):
+            for q in query_response:
+                if q.get(query_field):
+                    for f in q[query_field]["records"]:
+                        yield f
+
+        query_response = sf.query(catalog_entry, state, query_override=query)
+        query_response = unwrap_query(query_response, query_field)
+
+    sync_others(sf, catalog_entry, state, input_state, counter, catalog, download_files, chunked_bookmark, stream, schema, stream_alias, replication_key, stream_version, start_time, query_response)
+
+def sync_others(sf, catalog_entry, state, input_state, counter, catalog, download_files, chunked_bookmark, stream, schema, stream_alias, replication_key, stream_version, start_time, query_response):
+    for rec in query_response:
+        counter.increment()
         with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
-            rec = transformer.transform(response.json(), schema)
+            rec = transformer.transform(rec, schema)
         rec = fix_record_anytype(rec, schema)
-        stream = stream.replace("/","_")
+        if stream=='ContentVersion':
+            if "IsLatest" in rec:
+                if rec['IsLatest']==True and download_files==True:
+                    rec['TextPreview'] = base64.b64encode(get_content_document_file(sf,rec['Id'])).decode('utf-8')
         singer.write_message(
-            singer.RecordMessage(
-                stream=(
-                    stream_alias or stream),
-                record=rec,
-                version=stream_version,
-                time_extracted=start_time))
-
-    elif "ListViews" == catalog_entry["stream"]:
-        headers = sf._get_standard_headers()
-        endpoint = "queryAll"
-
-        params = {'q': f'SELECT Name,Id,SobjectType,DeveloperName FROM ListView'}
-        url = sf.data_url.format(sf.instance_url, endpoint)
-        response = sf._make_request('GET', url, headers=headers, params=params)
-    
-        Id_Sobject = [{"Id":r["Id"],"SobjectType": r["SobjectType"],"DeveloperName":r["DeveloperName"],"Name":r["Name"]}
-                    for r in response.json().get('records',[]) if r["Name"]]
-
-        selected_lists_names = []
-        for ln in catalog_entry.get("metadata",[])[:-1]:
-            if ln.get("metadata",[])['selected']:
-                selected_list = ln.get('breadcrumb',[])[1]
-                for isob in Id_Sobject:
-                    if selected_list==f"ListView_{isob['SobjectType']}_{isob['DeveloperName']}":
-                        selected_lists_names.append(isob)
-
-        replication_key_value = replication_key and singer_utils.strptime_with_tz(rec[replication_key])
-
-        for list_info in selected_lists_names:
-
-            sobject = list_info['SobjectType']
-            lv_name = list_info['DeveloperName']
-            lv_id = list_info['Id']
-
-            lv_catalog = [x for x in catalog["streams"] if x["stream"] == sobject]
-
-            if lv_catalog:
-                lv_catalog_entry = lv_catalog[0].copy()
-                try:
-                    handle_ListView(sf,lv_id,sobject,lv_name,lv_catalog_entry,state,input_state,start_time)
-                except RequestException as e:
-                    LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
-
-    else:
-        if catalog_entry["stream"] in ACTIVITY_STREAMS:
-            start_date_str = sf.get_start_date(state, catalog_entry)
-            start_date = singer_utils.strptime_with_tz(start_date_str)
-            start_date = singer_utils.strftime(start_date)
-
-            selected_properties = sf._get_selected_properties(catalog_entry)
-
-            query_map = {
-                "ActivityHistory": "ActivityHistories",
-                "OpenActivity": "OpenActivities"
-            }
-
-            query_field = query_map[catalog_entry['stream']]
-
-            query = "SELECT {} FROM {}".format(",".join(selected_properties), query_field)
-            query = f"SELECT ({query}) FROM Contact"
-
-            catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-            replication_key = catalog_metadata.get((), {}).get('replication-key')
-
-            order_by = ""
-            if replication_key:
-                where_clause = " WHERE {} > {} ".format(
-                    replication_key,
-                    start_date)
-                order_by = " ORDER BY {} ASC".format(replication_key)
-                query = query + where_clause + order_by
-
-            def unwrap_query(query_response, query_field):
-                for q in query_response:
-                    if q.get(query_field):
-                        for f in q[query_field]["records"]:
-                            yield f
-
-            query_response = sf.query(catalog_entry, state, query_override=query)
-            query_response = unwrap_query(query_response, query_field)
-        else:
-            query_response = sf.query(catalog_entry, state)
-
-        for rec in query_response:
-            counter.increment()
-            with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
-                rec = transformer.transform(rec, schema)
-            rec = fix_record_anytype(rec, schema)
-            if stream=='ContentVersion':
-                if "IsLatest" in rec:
-                    if rec['IsLatest']==True and download_files==True:
-                        rec['TextPreview'] = base64.b64encode(get_content_document_file(sf,rec['Id'])).decode('utf-8')
-            singer.write_message(
                 singer.RecordMessage(
                     stream=(
                         stream_alias or stream),
@@ -377,41 +308,113 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     version=stream_version,
                     time_extracted=start_time))
 
-            replication_key_value = replication_key and singer_utils.strptime_with_tz(rec[replication_key])
+        replication_key_value = replication_key and singer_utils.strptime_with_tz(rec[replication_key])
 
-            if sf.pk_chunking:
-                if replication_key_value and replication_key_value <= start_time and replication_key_value > chunked_bookmark:
+        if sf.pk_chunking:
+            if replication_key_value and replication_key_value <= start_time and replication_key_value > chunked_bookmark:
                     # Replace the highest seen bookmark and save the state in case we need to resume later
-                    chunked_bookmark = singer_utils.strptime_with_tz(rec[replication_key])
-                    state = singer.write_bookmark(
+                chunked_bookmark = singer_utils.strptime_with_tz(rec[replication_key])
+                state = singer.write_bookmark(
                         state,
                         catalog_entry['tap_stream_id'],
                         'JobHighestBookmarkSeen',
                         singer_utils.strftime(chunked_bookmark))
-                    singer.write_state(state)
+                singer.write_state(state)
             # Before writing a bookmark, make sure Salesforce has not given us a
             # record with one outside our range
-            elif replication_key_value and replication_key_value <= start_time:
-                state = singer.write_bookmark(
+        elif replication_key_value and replication_key_value <= start_time:
+            state = singer.write_bookmark(
                     state,
                     catalog_entry['tap_stream_id'],
                     replication_key,
                     rec[replication_key])
-                singer.write_state(state)
+            singer.write_state(state)
 
-            selected = get_selected_streams(catalog)
-            if stream == "ListView" and rec.get("SobjectType") in selected and rec.get("Id") is not None:
+        selected = get_selected_streams(catalog)
+        if stream == "ListView" and rec.get("SobjectType") in selected and rec.get("Id") is not None:
                 # Handle listview
-                try:
-                    sobject = rec["SobjectType"]
-                    lv_name = rec["DeveloperName"]
-                    lv_catalog = [x for x in catalog["streams"] if x["stream"] == sobject]
-                    rec_id = rec["Id"]
-                    lv_catalog_entry = lv_catalog[0].copy()
-                    if len(lv_catalog) > 0:
-                        handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state,start_time)
-                except RequestException as e:
-                    pass
+            try:
+                sobject = rec["SobjectType"]
+                lv_name = rec["DeveloperName"]
+                lv_catalog = [x for x in catalog["streams"] if x["stream"] == sobject]
+                rec_id = rec["Id"]
+                lv_catalog_entry = lv_catalog[0].copy()
+                if len(lv_catalog) > 0:
+                    handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state,start_time)
+            except RequestException as e:
+                pass
+
+def sync_list_views_stream(sf, catalog_entry, state, input_state, catalog, replication_key, start_time):
+    headers = sf._get_standard_headers()
+    endpoint = "queryAll"
+
+    params = {'q': f'SELECT Name,Id,SobjectType,DeveloperName FROM ListView'}
+    url = sf.data_url.format(sf.instance_url, endpoint)
+    response = sf._make_request('GET', url, headers=headers, params=params)
+    
+    Id_Sobject = [{"Id":r["Id"],"SobjectType": r["SobjectType"],"DeveloperName":r["DeveloperName"],"Name":r["Name"]}
+                    for r in response.json().get('records',[]) if r["Name"]]
+
+    selected_lists_names = []
+    for ln in catalog_entry.get("metadata",[])[:-1]:
+        if ln.get("metadata",[])['selected']:
+            selected_list = ln.get('breadcrumb',[])[1]
+            for isob in Id_Sobject:
+                if selected_list==f"ListView_{isob['SobjectType']}_{isob['DeveloperName']}":
+                    selected_lists_names.append(isob)
+
+    for list_info in selected_lists_names:
+        sobject = list_info['SobjectType']
+        lv_name = list_info['DeveloperName']
+        lv_id = list_info['Id']
+
+        lv_catalog = [x for x in catalog["streams"] if x["stream"] == sobject]
+
+        if lv_catalog:
+            lv_catalog_entry = lv_catalog[0].copy()
+            try:
+                handle_ListView(sf,lv_id,sobject,lv_name,lv_catalog_entry,state,input_state,start_time)
+            except RequestException as e:
+                LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
+
+def sync_report_streams(sf, catalog_entry, stream, schema, stream_alias, stream_version, start_time):
+    report_name = catalog_entry["stream"].split("Report_", 1)[1]
+        
+    reports = []
+    done = False
+    headers = sf._get_standard_headers()
+    endpoint = "queryAll"
+    params = {'q': 'SELECT Id,DeveloperName FROM Report'}
+    url = sf.data_url.format(sf.instance_url, endpoint)
+
+    while not done:
+        response = sf._make_request('GET', url, headers=headers, params=params)
+        response_json = response.json()
+        reports.extend(response_json.get("records", []))
+        done = response_json.get("done")
+        if not done:
+            url = sf.instance_url+response_json.get("nextRecordsUrl")
+
+    report = [r for r in reports if report_name==r["DeveloperName"]][0]
+    report_id = report["Id"]
+
+    endpoint = f"analytics/reports/{report_id}"
+    url = sf.data_url.format(sf.instance_url, endpoint)
+    response = sf._make_request('GET', url, headers=headers)
+
+    with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
+        rec = transformer.transform(response.json(), schema)
+    rec = fix_record_anytype(rec, schema)
+    stream = stream.replace("/","_")
+    singer.write_message(
+            singer.RecordMessage(
+                stream=(
+                    stream_alias or stream),
+                record=rec,
+                version=stream_version,
+                time_extracted=start_time))
+            
+    return stream,rec
 
 
 def fix_record_anytype(rec, schema):

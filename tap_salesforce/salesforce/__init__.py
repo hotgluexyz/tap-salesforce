@@ -289,13 +289,18 @@ class Salesforce():
         elif http_method == "POST":
             LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
             resp = self.session.post(url, headers=headers, data=body)
+            LOGGER.info("Completed %s request to %s with body: %s", http_method, url, body)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
 
         try:
             resp.raise_for_status()
         except RequestException as ex:
-            raise ex
+            try:
+                if "is not supported to use PKChunking" not in ex.response.json()['exceptionMessage']:
+                    raise ex
+            except:
+                raise ex
 
         if resp.headers.get('Sforce-Limit-Info') is not None:
             self.rest_requests_attempted += 1
@@ -435,10 +440,16 @@ class Salesforce():
         if state["bookmarks"].get("ListView"):
             if state["bookmarks"]["ListView"].get("SystemModstamp"):
                 del state["bookmarks"]["ListView"]["SystemModstamp"]
-        if self.api_type == BULK_API_TYPE and query_override is None:
-            bulk = Bulk(self)
-            return bulk.query(catalog_entry, state)
-        elif self.api_type == REST_API_TYPE or query_override is not None:
+        try_rest_call = False
+        try:
+            if self.api_type == BULK_API_TYPE and query_override is None:
+                bulk = Bulk(self)
+                return bulk.query(catalog_entry, state)
+        except Exception as e:
+            LOGGER.warning(f"[FAILURE] BULK API failed for catalog entry {catalog_entry} and state {state}. Trying a rest call.")
+            LOGGER.info(e)
+            try_rest_call = True
+        if try_rest_call or self.api_type == REST_API_TYPE or query_override is not None:
             rest = Rest(self)
             return rest.query(catalog_entry, state, query_override=query_override)
         else:

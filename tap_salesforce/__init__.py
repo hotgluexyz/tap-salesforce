@@ -475,9 +475,9 @@ def do_sync(sf, catalog, state,config=None):
                 state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}).pop('JobID', None)
                 state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}).pop('BatchIDs', None)
                 bookmark = state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}) \
-                                                     .pop('JobHighestBookmarkSeen', None)
+                                                    .pop('JobHighestBookmarkSeen', None)
                 existing_bookmark = state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}) \
-                                                              .pop(replication_key, None)
+                                                            .pop(replication_key, None)
                 state = singer.write_bookmark(
                     state,
                     catalog_entry['tap_stream_id'],
@@ -506,7 +506,6 @@ def do_sync(sf, catalog, state,config=None):
                                               stream_version)
             counter = sync_stream(sf, catalog_entry, state, input_state, catalog,config)
             LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter.value)
-
     state["current_stream"] = None
     singer.write_state(state)
     LOGGER.info("Finished sync")

@@ -8,7 +8,7 @@ import singer
 from singer import metrics
 import requests
 from requests.exceptions import RequestException
-
+import concurrent.futures
 import xmltodict
 
 from tap_salesforce.salesforce.exceptions import (
@@ -16,7 +16,7 @@ from tap_salesforce.salesforce.exceptions import (
 
 BATCH_STATUS_POLLING_SLEEP = 20
 PK_CHUNKED_BATCH_STATUS_POLLING_SLEEP = 60
-ITER_CHUNK_SIZE = 1024
+ITER_CHUNK_SIZE = 2**15
 DEFAULT_CHUNK_SIZE = 100000 # Max is 250000
 
 LOGGER = singer.get_logger()
@@ -197,7 +197,7 @@ class Bulk():
         return job['id']
 
     def _add_batch(self, catalog_entry, job_id, start_date, order_by_clause=True):
-        endpoint = "job/{}/batch".format(job_id)
+        endpoint = self._get_endpoint(job_id) + "/batch"
         url = self.bulk_url.format(self.sf.instance_url, endpoint)
 
         body = self.sf._build_query_string(catalog_entry, start_date, order_by_clause=order_by_clause)
@@ -241,7 +241,7 @@ class Bulk():
 
     def job_exists(self, job_id):
         try:
-            endpoint = "job/{}".format(job_id)
+            endpoint = self._get_endpoint(job_id)
             url = self.bulk_url.format(self.sf.instance_url, endpoint)
             headers = self._get_bulk_headers()
 
@@ -258,7 +258,7 @@ class Bulk():
             raise
 
     def _get_batches(self, job_id):
-        endpoint = "job/{}/batch".format(job_id)
+        endpoint = self._get_endpoint(job_id) + "/batch"
         url = self.bulk_url.format(self.sf.instance_url, endpoint)
         headers = self._get_bulk_headers()
 
@@ -272,7 +272,7 @@ class Bulk():
         return batches
 
     def _get_batch(self, job_id, batch_id):
-        endpoint = "job/{}/batch/{}".format(job_id, batch_id)
+        endpoint = self._get_endpoint(job_id) + "/batch/{}".format(batch_id)
         url = self.bulk_url.format(self.sf.instance_url, endpoint)
         headers = self._get_bulk_headers()
 
@@ -287,7 +287,7 @@ class Bulk():
         """Given a job_id and batch_id, queries the batches results and reads
         CSV lines yielding each line as a record."""
         headers = self._get_bulk_headers()
-        endpoint = "job/{}/batch/{}/result".format(job_id, batch_id)
+        endpoint = self._get_endpoint(job_id) + "/batch/{}/result".format(batch_id)
         url = self.bulk_url.format(self.sf.instance_url, endpoint)
 
         with metrics.http_request_timer("batch_result_list") as timer:
@@ -301,31 +301,32 @@ class Bulk():
                                             xml_attribs=False,
                                             force_list={'result'})['result-list']
 
-        for result in batch_result_list['result']:
-            endpoint = "job/{}/batch/{}/result/{}".format(job_id, batch_id, result)
+        def process_result(result):
+            endpoint = self._get_endpoint(job_id) + "/batch/{}/result/{}".format(batch_id, result)
             url = self.bulk_url.format(self.sf.instance_url, endpoint)
             headers['Content-Type'] = 'text/csv'
 
             with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8") as csv_file:
                 resp = self.sf._make_request('GET', url, headers=headers, stream=True)
-                for chunk in resp.iter_content(chunk_size=ITER_CHUNK_SIZE, decode_unicode=True):
-                    if chunk:
-                        # Replace any NULL bytes in the chunk so it can be safely given to the CSV reader
-                        csv_file.write(chunk.replace('\0', ''))
-
-                csv_file.seek(0)
-                csv_reader = csv.reader(csv_file,
-                                        delimiter=',',
-                                        quotechar='"')
+                csv_reader = csv.reader(
+                    (chunk.replace('\0', '') for chunk in self._iter_lines(resp) if chunk),
+                    delimiter=',',
+                    quotechar='"'
+                )
 
                 column_name_list = next(csv_reader)
 
-                for line in csv_reader:
-                    rec = dict(zip(column_name_list, line))
+                records = [dict(zip(column_name_list, line)) for line in csv_reader]
+                return records
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_result, result) for result in batch_result_list['result']]
+            for future in concurrent.futures.as_completed(futures):
+                for rec in future.result():
                     yield rec
 
     def _close_job(self, job_id):
-        endpoint = "job/{}".format(job_id)
+        endpoint = self._get_endpoint(job_id)
         url = self.bulk_url.format(self.sf.instance_url, endpoint)
         body = {"state": "Closed"}
 
@@ -335,6 +336,9 @@ class Bulk():
                 url,
                 headers=self._get_bulk_headers(),
                 body=json.dumps(body))
+
+    def _get_endpoint(self, job_id):
+        return "job/{}".format(job_id)
 
     # pylint: disable=no-self-use
     def _iter_lines(self, response):

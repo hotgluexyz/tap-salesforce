@@ -9,8 +9,6 @@ import singer
 import singer.utils as singer_utils
 from singer import metadata, metrics
 
-from tap_salesforce.salesforce.bulk import Bulk
-from tap_salesforce.salesforce.rest import Rest
 from simplejson.scanner import JSONDecodeError
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException,
@@ -289,6 +287,7 @@ class Salesforce():
         elif http_method == "POST":
             LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
             resp = self.session.post(url, headers=headers, data=body)
+            LOGGER.info("Completed %s request to %s with body %s", http_method, url, body)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
 
@@ -436,9 +435,11 @@ class Salesforce():
             if state["bookmarks"]["ListView"].get("SystemModstamp"):
                 del state["bookmarks"]["ListView"]["SystemModstamp"]
         if self.api_type == BULK_API_TYPE and query_override is None:
+            from tap_salesforce.salesforce.bulk import Bulk
             bulk = Bulk(self)
             return bulk.query(catalog_entry, state)
         elif self.api_type == REST_API_TYPE or query_override is not None:
+            from tap_salesforce.salesforce.rest import Rest
             rest = Rest(self)
             return rest.query(catalog_entry, state, query_override=query_override)
         else:

@@ -11,6 +11,7 @@ from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
+import concurrent.futures
 
 LOGGER = singer.get_logger()
 
@@ -271,44 +272,53 @@ def do_discover(sf):
     if sf.api_type == 'BULK' and not Bulk(sf).has_permissions():
         raise TapSalesforceBulkAPIDisabledException('This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code')
 
-    for sobject_name in sorted(objects_to_discover):
-
+    def process_sobject(sobject_name):
         # Skip blacklisted SF objects depending on the api_type in use
         # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
         if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
            or sobject_name.endswith("ChangeEvent"):
-            continue
+            return None, None, None
 
         sobject_description = sf.describe(sobject_name)
 
         if sobject_description is None:
-            continue
+            return None, None, None
 
         # Cache customSetting and Tag objects to check for blacklisting after
         # all objects have been described
         if sobject_description.get("customSetting"):
-            sf_custom_setting_objects.append(sobject_name)
+            return sobject_name, None, None
         elif sobject_name.endswith("__Tag"):
             relationship_field = next(
                 (f for f in sobject_description["fields"] if f.get("relationshipName") == "Item"),
                 None)
             if relationship_field:
                 # Map {"Object":"Object__Tag"}
-                object_to_tag_references[relationship_field["referenceTo"]
-                                         [0]] = sobject_name
+                return None, {relationship_field["referenceTo"][0]: sobject_name}, None
 
         fields = sobject_description['fields']
         replication_key = get_replication_key(sobject_name, fields)
 
         # Salesforce Objects are skipped when they do not have an Id field
-        if not [f["name"] for f in fields if f["name"]=="Id"]:
+        if not [f["name"] for f in fields if f["name"] == "Id"]:
             LOGGER.info(
                 "Skipping Salesforce Object %s, as it has no Id field",
                 sobject_name)
-            continue
+            return None, None, None
 
         entry = generate_schema(fields, sf, sobject_name, replication_key)
-        entries.append(entry)
+        return None, None, entry
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_sobject, sorted(objects_to_discover)))
+
+    for custom_setting, tag_reference, entry in results:
+        if custom_setting:
+            sf_custom_setting_objects.append(custom_setting)
+        if tag_reference:
+            object_to_tag_references.update(tag_reference)
+        if entry:
+            entries.append(entry)
     
     # Handle ListViews
     views = get_views_list(sf)

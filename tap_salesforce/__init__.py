@@ -75,7 +75,7 @@ def build_state(raw_state, catalog):
             state = singer.write_bookmark(state, tap_stream_id, 'JobHighestBookmarkSeen', current_bookmark)
 
         if replication_method == 'INCREMENTAL':
-            replication_key = catalog_metadata.get((), {}).get('replication-key')
+            replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
             replication_key_value = singer.get_bookmark(raw_state,
                                                         tap_stream_id,
                                                         replication_key)
@@ -432,11 +432,9 @@ def do_sync(sf, catalog, state,config=None):
             stream=(stream_alias or stream.replace("/","_")), version=stream_version)
 
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-        replication_key = catalog_metadata.get((), {}).get('replication-key')
+        replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
 
-        mdata = metadata.to_map(catalog_entry['metadata'])
-
-        if not stream_is_selected(mdata):
+        if not stream_is_selected(catalog_metadata):
             LOGGER.info("%s: Skipping - not selected", stream_name)
             continue
 
@@ -490,14 +488,9 @@ def do_sync(sf, catalog, state,config=None):
             bookmark_is_empty = state.get('bookmarks', {}).get(
                 catalog_entry['tap_stream_id']) is None
 
-            if "/" in state["current_stream"]:
-                # get current name
-                old_key = state["current_stream"]
-                # get the new key name
-                new_key = old_key.replace("/","_")
-                state["current_stream"] = new_key
-
+            state["current_stream"] = state["current_stream"].replace("/", "_")
             catalog_entry['tap_stream_id'] = catalog_entry['tap_stream_id'].replace("/","_")
+
             if replication_key or bookmark_is_empty:
                 singer.write_message(activate_version_message)
                 state = singer.write_bookmark(state,

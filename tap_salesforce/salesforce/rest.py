@@ -1,7 +1,7 @@
 # pylint: disable=protected-access
 import singer
 import singer.utils as singer_utils
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, RequestException
 from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.exceptions import TapSalesforceException
 
@@ -72,7 +72,7 @@ class Rest():
                 raise ex
 
         if not retryable:
-            LOGGER.info("[Rest] Not retrying: Stream:%s - Query:%s", catalog_entry['stream'], query)
+            LOGGER.info("[REST] Not retrying: Stream:%s", catalog_entry['stream'])
             return
 
         start_date = singer_utils.strptime_with_tz(start_date_str)
@@ -85,7 +85,7 @@ class Rest():
 
         query = self.sf._build_query_string(catalog_entry, singer_utils.strftime(start_date),
                                             singer_utils.strftime(end_date))
-        LOGGER.info("[Rest] Retrying: Stream: %s - Query: %s", catalog_entry['stream'], query)
+        LOGGER.info("[REST] Retrying: Stream: %s", catalog_entry['stream'])
         for record in self._query_recur(
                 query,
                 catalog_entry,
@@ -95,18 +95,25 @@ class Rest():
             yield record
 
     def _sync_records(self, url, headers, catalog_entry, params):
+        # Set the desired batch size
+        params['batchSize'] = 20000  # Adjust this value as needed, max is typically 2000
+
         while True:
-            LOGGER.info("[Rest] Fetching records from: Stream: %s - URL: %s", catalog_entry['stream'], url)
-            resp = self.sf._make_request('GET', url, headers=headers, params=params, validate_json=True)
-            resp_json = resp.json()
+            LOGGER.debug("[REST] Fetching records from: Stream: %s - URL: %s", catalog_entry['stream'], url)
+            try:
+                resp = self.sf._make_request('GET', url, headers=headers, params=params, validate_json=True)
+                resp_json = resp.json()
 
-            for rec in resp_json.get('records'):
-                yield rec
+                for rec in resp_json.get('records'):
+                    yield rec
 
-            next_records_url = resp_json.get('nextRecordsUrl')
+                next_records_url = resp_json.get('nextRecordsUrl')
 
-            if next_records_url is None:
-                LOGGER.info("[Rest] No more records to fetch")
-                break
+                if next_records_url is None:
+                    LOGGER.info("[REST] No more records to fetch from: Stream: %s - URL: %s", catalog_entry['stream'], url)
+                    break
 
-            url = "{}{}".format(self.sf.instance_url, next_records_url)
+                url = "{}{}".format(self.sf.instance_url, next_records_url)
+            except RequestException as e:
+                LOGGER.error("Error fetching records: %s", e)
+                raise e

@@ -281,13 +281,13 @@ class Salesforce():
                           on_backoff=log_backoff_attempt)
     def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None):
         if http_method == "GET":
-            LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
+            LOGGER.debug("[REST] Making %s request to %s", http_method, url)
             resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
-            LOGGER.info("Completed %s request to %s with params: %s", http_method, url, params)
+            LOGGER.debug("[REST] Completed %s request to %s", http_method, url)
         elif http_method == "POST":
-            LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
+            LOGGER.debug("[REST] Making %s request to %s", http_method, url)
             resp = self.session.post(url, headers=headers, data=body)
-            LOGGER.info("Completed %s request to %s with body %s", http_method, url, body)
+            LOGGER.debug("[REST] Completed %s request to %s", http_method, url)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
 
@@ -399,7 +399,7 @@ class Salesforce():
 
     def get_start_date(self, state, catalog_entry):
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-        replication_key = catalog_metadata.get((), {}).get('replication-key')
+        replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
 
         return (singer.get_bookmark(state,
                                     catalog_entry['tap_stream_id'],
@@ -411,7 +411,7 @@ class Salesforce():
         query = "SELECT {} FROM {}".format(",".join(selected_properties), catalog_entry['stream'])
 
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-        replication_key = catalog_metadata.get((), {}).get('replication-key')
+        replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
 
         if replication_key:
             where_clause = " WHERE {} > {} ".format(

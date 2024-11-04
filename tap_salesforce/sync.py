@@ -41,7 +41,7 @@ def transform_bulk_data_hook(data, typ, schema):
 def get_stream_version(catalog_entry, state):
     tap_stream_id = catalog_entry['tap_stream_id']
     catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-    replication_key = catalog_metadata.get((), {}).get('replication-key')
+    replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
 
     if singer.get_bookmark(state, tap_stream_id, 'version') is None:
         stream_version = int(time.time() * 1000)
@@ -62,7 +62,7 @@ def resume_syncing_bulk_query(sf, catalog_entry, job_id, state, counter):
     stream = catalog_entry['stream']
     stream_alias = catalog_entry.get('stream_alias')
     catalog_metadata = metadata.to_map(catalog_entry.get('metadata'))
-    replication_key = catalog_metadata.get((), {}).get('replication-key')
+    replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
     stream_version = get_stream_version(catalog_entry, state)
     schema = catalog_entry['schema']
 
@@ -147,7 +147,7 @@ def handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state
     # Save the schema
     lv_schema = lv_catalog_entry['schema']
     lv_catalog_metadata = metadata.to_map(lv_catalog_entry['metadata'])
-    lv_replication_key = lv_catalog_metadata.get((), {}).get('replication-key')
+    lv_replication_key = next(iter(lv_catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
     lv_key_properties = lv_catalog_metadata.get((), {}).get('table-key-properties')
 
     date_filter = None
@@ -211,7 +211,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config
     schema = catalog_entry['schema']
     stream_alias = catalog_entry.get('stream_alias')
     catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-    replication_key = catalog_metadata.get((), {}).get('replication-key')
+    replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
     stream_version = get_stream_version(catalog_entry, state)
     activate_version_message = singer.ActivateVersionMessage(stream=(stream_alias or stream), version=stream_version)
 
@@ -342,7 +342,7 @@ def process_other_streams(sf:Salesforce, catalog_entry, state, input_state, coun
     else:
         query_response = sf.query(catalog_entry, state)
 
-    def process_record(rec):
+    def process_record(rec, state):
         counter.increment()
         with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
             rec = transformer.transform(rec, schema)
@@ -391,7 +391,7 @@ def process_other_streams(sf:Salesforce, catalog_entry, state, input_state, coun
                 pass
 
     with ThreadPoolExecutor() as executor:
-        futures = [executor.submit(process_record, rec) for rec in query_response]
+        futures = [executor.submit(process_record, rec, state) for rec in query_response]
         for future in as_completed(futures):
             future.result()
 

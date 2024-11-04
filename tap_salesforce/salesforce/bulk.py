@@ -11,13 +11,14 @@ from requests.exceptions import RequestException
 import concurrent.futures
 import xmltodict
 
+from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException)
 
 BATCH_STATUS_POLLING_SLEEP = 20
 PK_CHUNKED_BATCH_STATUS_POLLING_SLEEP = 60
 ITER_CHUNK_SIZE = 2**15
-DEFAULT_CHUNK_SIZE = 100000 # Max is 250000
+DEFAULT_CHUNK_SIZE = 250000 # Max is 250000
 
 LOGGER = singer.get_logger()
 
@@ -44,7 +45,7 @@ class Bulk():
     def bulk_url(self):
         return "{}/services/async/" + self.sf.version + "/{}"
 
-    def __init__(self, sf):
+    def __init__(self, sf:Salesforce):
         # Set csv max reading size to the platform's max size available.
         csv.field_size_limit(sys.maxsize)
         self.sf = sf
@@ -139,8 +140,8 @@ class Bulk():
                         yield result
                     # Remove the completed batch ID and write state
                     state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"].remove(completed_batch_id)
-                    LOGGER.info("Finished syncing batch %s. Removing batch from state.", completed_batch_id)
-                    LOGGER.info("Batches to go: %d", len(state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"]))
+                    LOGGER.info("[BULK] Finished syncing batch %s. Removing batch from state.", completed_batch_id)
+                    LOGGER.info("[BULK] Batches to go: %d", len(state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"]))
                     singer.write_state(state)
             else:
                 raise TapSalesforceException(batch_status['stateMessage'])
@@ -149,7 +150,7 @@ class Bulk():
                 yield result
 
     def _bulk_query_with_pk_chunking(self, catalog_entry, start_date):
-        LOGGER.info("Retrying Bulk Query with PK Chunking")
+        LOGGER.info("[BULK] Retrying Bulk Query with PK Chunking")
 
         # Create a new job
         job_id = self._create_job(catalog_entry, True)
@@ -175,7 +176,7 @@ class Bulk():
         headers['Sforce-Disable-Batch-Retry'] = "true"
 
         if pk_chunking:
-            LOGGER.info("ADDING PK CHUNKING HEADER")
+            LOGGER.info("[BULK] ADDING PK CHUNKING HEADER")
 
             headers['Sforce-Enable-PKChunking'] = "true; chunkSize={}".format(DEFAULT_CHUNK_SIZE)
 
@@ -306,18 +307,17 @@ class Bulk():
             url = self.bulk_url.format(self.sf.instance_url, endpoint)
             headers['Content-Type'] = 'text/csv'
 
-            with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8") as csv_file:
-                resp = self.sf._make_request('GET', url, headers=headers, stream=True)
-                csv_reader = csv.reader(
-                    (chunk.replace('\0', '') for chunk in self._iter_lines(resp) if chunk),
-                    delimiter=',',
-                    quotechar='"'
-                )
+            resp = self.sf._make_request('GET', url, headers=headers, stream=True)
+            csv_reader = csv.reader(
+                (chunk.replace('\0', '') for chunk in self._iter_lines(resp) if chunk),
+                delimiter=',',
+                quotechar='"'
+            )
 
-                column_name_list = next(csv_reader)
+            column_name_list = next(csv_reader)
 
-                records = [dict(zip(column_name_list, line)) for line in csv_reader]
-                return records
+            records = [dict(zip(column_name_list, line)) for line in csv_reader]
+            return records
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [executor.submit(process_result, result) for result in batch_result_list['result']]

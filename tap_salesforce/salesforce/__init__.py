@@ -178,7 +178,7 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
         return property_schema, mdata
     elif sf_type == 'location':
         # geo coordinates are numbers or objects divided into two fields for lat/long
-        property_schema['type'] = ["number", "object", "null"]
+        property_schema['type'] = ["object", "number", "null"]
         property_schema['properties'] = {
             "longitude": {"type": ["null", "number"]},
             "latitude": {"type": ["null", "number"]}
@@ -293,7 +293,7 @@ class Salesforce():
         try:
             resp.raise_for_status()
         except RequestException as ex:
-            raise ex
+            raise Exception(f"Error: {ex}. Response: {resp.text}")
 
         if resp.headers.get('Sforce-Limit-Info') is not None:
             self.rest_requests_attempted += 1

@@ -248,7 +248,7 @@ def get_views_list(sf):
             sf.listview(sobject,lv_id)
             responses.append(lv)
         except RequestException as e:
-            LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}")
+            LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}. response: {e.response.text}. url: {e.request.url}")
 
     return responses
 

@@ -220,7 +220,7 @@ def get_reports_list(sf):
         try:
             response = sf._make_request('GET', url, headers=headers, params=params)
         except HTTPError as e:
-            LOGGER.warning("Reports not supported.")
+            LOGGER.warning(f"Reports not supported. status_code={e.response.status_code}. response={e.response.json()}. url={e.request.url}")
             return output
         response_json = response.json()
         done = response_json.get("done")

@@ -142,17 +142,17 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
     sf_type = field['type']
 
     if sf_type in STRING_TYPES:
-        property_schema['type'] = "string"
+        property_schema['type'] = ["string", "null"]
     elif sf_type in DATE_TYPES:
-        date_type = {"type": "string", "format": "date-time"}
+        date_type = {"type": ["string", "null"], "format": "date-time"}
         string_type = {"type": ["string", "null"]}
         property_schema["anyOf"] = [date_type, string_type]
     elif sf_type == "boolean":
-        property_schema['type'] = "boolean"
+        property_schema['type'] = ["boolean", "null"]
     elif sf_type in NUMBER_TYPES:
-        property_schema['type'] = "number"
+        property_schema['type'] = ["number", "null"]
     elif sf_type == "address":
-        property_schema['type'] = "object"
+        property_schema['type'] = ["object", "null"]
         property_schema['properties'] = {
             "street": {"type": ["null", "string"]},
             "state": {"type": ["null", "string"]},
@@ -164,9 +164,9 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
             "geocodeAccuracy": {"type": ["null", "string"]}
         }
     elif sf_type == "int":
-        property_schema['type'] = "integer"
+        property_schema['type'] = ["integer", "null"]
     elif sf_type == "time":
-        property_schema['type'] = "string"
+        property_schema['type'] = ["string", "null"]
     elif sf_type in LOOSE_TYPES:
         return property_schema, mdata  # No type = all types
     elif sf_type in BINARY_TYPES:
@@ -182,13 +182,14 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
             "latitude": {"type": ["null", "number"]}
         }
     elif sf_type == 'json':
-        property_schema['type'] = "string"
+        property_schema['type'] = ["string", "null"]
     else:
         raise TapSalesforceException("Found unsupported type: {}".format(sf_type))
 
     # The nillable field cannot be trusted
     if field_name != 'Id' and sf_type != 'location' and sf_type not in DATE_TYPES:
-        property_schema['type'] = ["null", property_schema['type']]
+        if "null" not in property_schema['type']:
+            property_schema['type'].append("null")
 
     return property_schema, mdata
 

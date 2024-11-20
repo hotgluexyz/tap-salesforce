@@ -256,7 +256,7 @@ def get_views_list(sf):
 
 
 # pylint: disable=too-many-branches,too-many-statements
-def do_discover(sf):
+def do_discover(sf: Salesforce):
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 

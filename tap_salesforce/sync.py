@@ -33,7 +33,7 @@ def transform_bulk_data_hook(data, typ, schema):
     # Salesforce Bulk API returns CSV's with empty strings for text fields.
     # When the text field is nillable and the data value is an empty string,
     # change the data so that it is None.
-    if data == "" and "null" in schema['type']:
+    if data == "" and "null" in schema.get('type', []):
         result = None
 
     return result
@@ -342,7 +342,7 @@ def process_other_streams(sf:Salesforce, catalog_entry, state, input_state, coun
     else:
         query_response = sf.query(catalog_entry, state)
 
-    def process_record(rec, state):
+    def process_record(rec, state, schema):
         counter.increment()
         with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
             rec = transformer.transform(rec, schema)
@@ -391,7 +391,7 @@ def process_other_streams(sf:Salesforce, catalog_entry, state, input_state, coun
                 pass
 
     with ThreadPoolExecutor() as executor:
-        futures = [executor.submit(process_record, rec, state) for rec in query_response]
+        futures = [executor.submit(process_record, rec, state, schema) for rec in query_response]
         for future in as_completed(futures):
             future.result()
 

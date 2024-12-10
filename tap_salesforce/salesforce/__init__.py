@@ -142,17 +142,17 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
     sf_type = field['type']
 
     if sf_type in STRING_TYPES:
-        property_schema['type'] = ["string", "null"]
+        property_schema['type'] = ["null", "string"]
     elif sf_type in DATE_TYPES:
-        date_type = {"type": ["string", "null"], "format": "date-time"}
-        string_type = {"type": ["string", "null"]}
+        date_type = {"type": ["null", "string"], "format": "date-time"}
+        string_type = {"type": ["null", "string"]}
         property_schema["anyOf"] = [date_type, string_type]
     elif sf_type == "boolean":
-        property_schema['type'] = ["boolean", "null"]
+        property_schema['type'] = ["null", "boolean"]
     elif sf_type in NUMBER_TYPES:
-        property_schema['type'] = ["number", "null"]
+        property_schema['type'] = ["null", "number"]
     elif sf_type == "address":
-        property_schema['type'] = ["object", "null"]
+        property_schema['type'] = ["null", "object"]
         property_schema['properties'] = {
             "street": {"type": ["null", "string"]},
             "state": {"type": ["null", "string"]},
@@ -164,9 +164,9 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
             "geocodeAccuracy": {"type": ["null", "string"]}
         }
     elif sf_type == "int":
-        property_schema['type'] = ["integer", "null"]
+        property_schema['type'] = ["null", "integer"]
     elif sf_type == "time":
-        property_schema['type'] = ["string", "null"]
+        property_schema['type'] = ["null", "string"]
     elif sf_type in LOOSE_TYPES:
         return property_schema, mdata  # No type = all types
     elif sf_type in BINARY_TYPES:
@@ -176,20 +176,20 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
         return property_schema, mdata
     elif sf_type == 'location':
         # geo coordinates are numbers or objects divided into two fields for lat/long
-        property_schema['type'] = ["number", "object", "null"]
+        property_schema['type'] = ["null", "object", "number"]
         property_schema['properties'] = {
             "longitude": {"type": ["null", "number"]},
             "latitude": {"type": ["null", "number"]}
         }
     elif sf_type == 'json':
-        property_schema['type'] = ["string", "null"]
+        property_schema['type'] = ["null", "string"]
     else:
         raise TapSalesforceException("Found unsupported type: {}".format(sf_type))
 
     # The nillable field cannot be trusted
     if field_name != 'Id' and sf_type != 'location' and sf_type not in DATE_TYPES:
         if "null" not in property_schema['type']:
-            property_schema['type'].append("null")
+            property_schema['type'].insert(0, "null")
 
     return property_schema, mdata
 

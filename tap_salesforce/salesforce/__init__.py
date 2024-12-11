@@ -9,8 +9,6 @@ import singer
 import singer.utils as singer_utils
 from singer import metadata, metrics
 
-from tap_salesforce.salesforce.bulk import Bulk
-from tap_salesforce.salesforce.rest import Rest
 from simplejson.scanner import JSONDecodeError
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException,
@@ -144,17 +142,17 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
     sf_type = field['type']
 
     if sf_type in STRING_TYPES:
-        property_schema['type'] = "string"
+        property_schema['type'] = ["null", "string"]
     elif sf_type in DATE_TYPES:
-        date_type = {"type": "string", "format": "date-time"}
-        string_type = {"type": ["string", "null"]}
+        date_type = {"type": ["null", "string"], "format": "date-time"}
+        string_type = {"type": ["null", "string"]}
         property_schema["anyOf"] = [date_type, string_type]
     elif sf_type == "boolean":
-        property_schema['type'] = "boolean"
+        property_schema['type'] = ["null", "boolean"]
     elif sf_type in NUMBER_TYPES:
-        property_schema['type'] = "number"
+        property_schema['type'] = ["null", "number"]
     elif sf_type == "address":
-        property_schema['type'] = "object"
+        property_schema['type'] = ["null", "object"]
         property_schema['properties'] = {
             "street": {"type": ["null", "string"]},
             "state": {"type": ["null", "string"]},
@@ -166,9 +164,9 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
             "geocodeAccuracy": {"type": ["null", "string"]}
         }
     elif sf_type == "int":
-        property_schema['type'] = "integer"
+        property_schema['type'] = ["null", "integer"]
     elif sf_type == "time":
-        property_schema['type'] = "string"
+        property_schema['type'] = ["null", "string"]
     elif sf_type in LOOSE_TYPES:
         return property_schema, mdata  # No type = all types
     elif sf_type in BINARY_TYPES:
@@ -178,19 +176,20 @@ def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
         return property_schema, mdata
     elif sf_type == 'location':
         # geo coordinates are numbers or objects divided into two fields for lat/long
-        property_schema['type'] = ["number", "object", "null"]
+        property_schema['type'] = ["null", "object", "number"]
         property_schema['properties'] = {
             "longitude": {"type": ["null", "number"]},
             "latitude": {"type": ["null", "number"]}
         }
     elif sf_type == 'json':
-        property_schema['type'] = "string"
+        property_schema['type'] = ["null", "string"]
     else:
         raise TapSalesforceException("Found unsupported type: {}".format(sf_type))
 
     # The nillable field cannot be trusted
     if field_name != 'Id' and sf_type != 'location' and sf_type not in DATE_TYPES:
-        property_schema['type'] = ["null", property_schema['type']]
+        if "null" not in property_schema['type']:
+            property_schema['type'].insert(0, "null")
 
     return property_schema, mdata
 
@@ -283,12 +282,13 @@ class Salesforce():
                           on_backoff=log_backoff_attempt)
     def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None):
         if http_method == "GET":
-            LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
+            LOGGER.debug("[REST] Making %s request to %s", http_method, url)
             resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
-            LOGGER.info("Completed %s request to %s with params: %s", http_method, url, params)
+            LOGGER.debug("[REST] Completed %s request to %s", http_method, url)
         elif http_method == "POST":
-            LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
+            LOGGER.debug("[REST] Making %s request to %s", http_method, url)
             resp = self.session.post(url, headers=headers, data=body)
+            LOGGER.debug("[REST] Completed %s request to %s", http_method, url)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
 
@@ -400,7 +400,7 @@ class Salesforce():
 
     def get_start_date(self, state, catalog_entry):
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-        replication_key = catalog_metadata.get((), {}).get('replication-key')
+        replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
 
         return (singer.get_bookmark(state,
                                     catalog_entry['tap_stream_id'],
@@ -412,7 +412,7 @@ class Salesforce():
         query = "SELECT {} FROM {}".format(",".join(selected_properties), catalog_entry['stream'])
 
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-        replication_key = catalog_metadata.get((), {}).get('replication-key')
+        replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
 
         if replication_key:
             where_clause = " WHERE {} > {} ".format(
@@ -436,9 +436,11 @@ class Salesforce():
             if state["bookmarks"]["ListView"].get("SystemModstamp"):
                 del state["bookmarks"]["ListView"]["SystemModstamp"]
         if self.api_type == BULK_API_TYPE and query_override is None:
+            from tap_salesforce.salesforce.bulk import Bulk
             bulk = Bulk(self)
             return bulk.query(catalog_entry, state)
         elif self.api_type == REST_API_TYPE or query_override is not None:
+            from tap_salesforce.salesforce.rest import Rest
             rest = Rest(self)
             return rest.query(catalog_entry, state, query_override=query_override)
         else:

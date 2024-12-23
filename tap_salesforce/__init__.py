@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import copy
 import json
 import sys
 import singer
@@ -56,7 +57,8 @@ def stream_is_selected(mdata):
 def build_state(raw_state, catalog):
     state = {}
 
-    for catalog_entry in catalog['streams']:
+    for read_only_catalog_entry in catalog['streams']:
+        catalog_entry = copy.deepcopy(read_only_catalog_entry)
         tap_stream_id = catalog_entry['tap_stream_id']
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
         replication_method = catalog_metadata.get((), {}).get('replication-method')
@@ -423,7 +425,8 @@ def do_sync(sf, catalog, state,config=None):
     catalog["streams"] = list_view + catalog["streams"]
 
     # Sync Streams
-    for catalog_entry in catalog["streams"]:
+    for read_only_catalog_entry in catalog["streams"]:
+        catalog_entry = copy.deepcopy(read_only_catalog_entry)
         stream_version = get_stream_version(catalog_entry, state)
         stream = catalog_entry['stream']
         stream_alias = catalog_entry.get('stream_alias')

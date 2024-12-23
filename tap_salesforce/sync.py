@@ -1,3 +1,4 @@
+import copy
 import time
 import re
 import singer
@@ -64,7 +65,7 @@ def resume_syncing_bulk_query(sf, catalog_entry, job_id, state, counter):
     catalog_metadata = metadata.to_map(catalog_entry.get('metadata'))
     replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
     stream_version = get_stream_version(catalog_entry, state)
-    schema = catalog_entry['schema']
+    schema_copy = copy.deepcopy(catalog_entry['schema'])
 
     if not bulk.job_exists(job_id):
         LOGGER.info("Found stored Job ID that no longer exists, resetting bookmark and removing JobID from state.")
@@ -75,6 +76,7 @@ def resume_syncing_bulk_query(sf, catalog_entry, job_id, state, counter):
         with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
             for rec in bulk.get_batch_results(job_id, batch_id, catalog_entry):
                 counter.increment()
+                schema = copy.deepcopy(schema_copy)
                 rec = transformer.transform(rec, schema)
                 rec = fix_record_anytype(rec, schema)
                 singer.write_message(
@@ -208,7 +210,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config
     download_files = config.get('download_files', False)
     chunked_bookmark = singer_utils.strptime_with_tz(sf.get_start_date(state, catalog_entry))
     stream = catalog_entry['stream'].replace("/", "_")
-    schema = catalog_entry['schema']
+    schema = copy.deepcopy(catalog_entry['schema'])
     stream_alias = catalog_entry.get('stream_alias')
     catalog_metadata = metadata.to_map(catalog_entry['metadata'])
     replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
@@ -342,7 +344,8 @@ def process_other_streams(sf:Salesforce, catalog_entry, state, input_state, coun
     else:
         query_response = sf.query(catalog_entry, state)
 
-    def process_record(rec, state, schema):
+    def process_record(rec, state, read_only_schema):
+        schema = copy.deepcopy(read_only_schema)
         counter.increment()
         with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
             rec = transformer.transform(rec, schema)

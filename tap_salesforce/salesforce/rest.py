@@ -1,7 +1,8 @@
 # pylint: disable=protected-access
 import singer
 import singer.utils as singer_utils
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, RequestException
+from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.exceptions import TapSalesforceException
 
 LOGGER = singer.get_logger()
@@ -10,7 +11,7 @@ MAX_RETRIES = 4
 
 class Rest():
 
-    def __init__(self, sf):
+    def __init__(self, sf: Salesforce):
         self.sf = sf
 
     def query(self, catalog_entry, state, query_override=None):
@@ -42,7 +43,7 @@ class Rest():
 
         retryable = False
         try:
-            for rec in self._sync_records(url, headers, params):
+            for rec in self._sync_records(url, headers, catalog_entry, params):
                 yield rec
 
             # If the date range was chunked (an end_date was passed), sync
@@ -70,36 +71,49 @@ class Rest():
             else:
                 raise ex
 
-        if retryable:
-            start_date = singer_utils.strptime_with_tz(start_date_str)
-            half_day_range = (end_date - start_date) // 2
-            end_date = end_date - half_day_range
+        if not retryable:
+            LOGGER.info("[REST] Not retrying: Stream:%s", catalog_entry['stream'])
+            return
 
-            if half_day_range.days == 0:
-                raise TapSalesforceException(
-                    "Attempting to query by 0 day range, this would cause infinite looping.")
+        start_date = singer_utils.strptime_with_tz(start_date_str)
+        half_day_range = (end_date - start_date) // 2
+        end_date = end_date - half_day_range
 
-            query = self.sf._build_query_string(catalog_entry, singer_utils.strftime(start_date),
-                                                singer_utils.strftime(end_date))
-            for record in self._query_recur(
-                    query,
-                    catalog_entry,
-                    start_date_str,
-                    end_date,
-                    retries - 1):
-                yield record
+        if half_day_range.days == 0:
+            raise TapSalesforceException(
+                "Attempting to query by 0 day range, this would cause infinite looping.")
 
-    def _sync_records(self, url, headers, params):
+        query = self.sf._build_query_string(catalog_entry, singer_utils.strftime(start_date),
+                                            singer_utils.strftime(end_date))
+        LOGGER.info("[REST] Retrying: Stream: %s", catalog_entry['stream'])
+        for record in self._query_recur(
+                query,
+                catalog_entry,
+                start_date_str,
+                end_date,
+                retries - 1):
+            yield record
+
+    def _sync_records(self, url, headers, catalog_entry, params):
+        # Set the desired batch size
+        params['batchSize'] = 20000  # Adjust this value as needed, max is typically 2000
+
         while True:
-            resp = self.sf._make_request('GET', url, headers=headers, params=params, validate_json=True)
-            resp_json = resp.json()
+            LOGGER.debug("[REST] Fetching records from: Stream: %s - URL: %s", catalog_entry['stream'], url)
+            try:
+                resp = self.sf._make_request('GET', url, headers=headers, params=params, validate_json=True)
+                resp_json = resp.json()
 
-            for rec in resp_json.get('records'):
-                yield rec
+                for rec in resp_json.get('records'):
+                    yield rec
 
-            next_records_url = resp_json.get('nextRecordsUrl')
+                next_records_url = resp_json.get('nextRecordsUrl')
 
-            if next_records_url is None:
-                break
+                if next_records_url is None:
+                    LOGGER.info("[REST] No more records to fetch from: Stream: %s - URL: %s", catalog_entry['stream'], url)
+                    break
 
-            url = "{}{}".format(self.sf.instance_url, next_records_url)
+                url = "{}{}".format(self.sf.instance_url, next_records_url)
+            except RequestException as e:
+                LOGGER.error("Error fetching records: %s", e)
+                raise e

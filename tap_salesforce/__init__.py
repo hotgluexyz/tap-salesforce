@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import copy
 import json
 import sys
 import singer
@@ -11,6 +12,7 @@ from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
+import concurrent.futures
 
 LOGGER = singer.get_logger()
 
@@ -55,7 +57,8 @@ def stream_is_selected(mdata):
 def build_state(raw_state, catalog):
     state = {}
 
-    for catalog_entry in catalog['streams']:
+    for read_only_catalog_entry in catalog['streams']:
+        catalog_entry = copy.deepcopy(read_only_catalog_entry)
         tap_stream_id = catalog_entry['tap_stream_id']
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
         replication_method = catalog_metadata.get((), {}).get('replication-method')
@@ -74,7 +77,7 @@ def build_state(raw_state, catalog):
             state = singer.write_bookmark(state, tap_stream_id, 'JobHighestBookmarkSeen', current_bookmark)
 
         if replication_method == 'INCREMENTAL':
-            replication_key = catalog_metadata.get((), {}).get('replication-key')
+            replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
             replication_key_value = singer.get_bookmark(raw_state,
                                                         tap_stream_id,
                                                         replication_key)
@@ -255,7 +258,7 @@ def get_views_list(sf):
 
 
 # pylint: disable=too-many-branches,too-many-statements
-def do_discover(sf):
+def do_discover(sf: Salesforce):
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 
@@ -271,44 +274,53 @@ def do_discover(sf):
     if sf.api_type == 'BULK' and not Bulk(sf).has_permissions():
         raise TapSalesforceBulkAPIDisabledException('This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code')
 
-    for sobject_name in sorted(objects_to_discover):
-
+    def process_sobject(sobject_name):
         # Skip blacklisted SF objects depending on the api_type in use
         # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
         if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
            or sobject_name.endswith("ChangeEvent"):
-            continue
+            return None, None, None
 
         sobject_description = sf.describe(sobject_name)
 
         if sobject_description is None:
-            continue
+            return None, None, None
 
         # Cache customSetting and Tag objects to check for blacklisting after
         # all objects have been described
         if sobject_description.get("customSetting"):
-            sf_custom_setting_objects.append(sobject_name)
+            return sobject_name, None, None
         elif sobject_name.endswith("__Tag"):
             relationship_field = next(
                 (f for f in sobject_description["fields"] if f.get("relationshipName") == "Item"),
                 None)
             if relationship_field:
                 # Map {"Object":"Object__Tag"}
-                object_to_tag_references[relationship_field["referenceTo"]
-                                         [0]] = sobject_name
+                return None, {relationship_field["referenceTo"][0]: sobject_name}, None
 
         fields = sobject_description['fields']
         replication_key = get_replication_key(sobject_name, fields)
 
         # Salesforce Objects are skipped when they do not have an Id field
-        if not [f["name"] for f in fields if f["name"]=="Id"]:
+        if not [f["name"] for f in fields if f["name"] == "Id"]:
             LOGGER.info(
                 "Skipping Salesforce Object %s, as it has no Id field",
                 sobject_name)
-            continue
+            return None, None, None
 
         entry = generate_schema(fields, sf, sobject_name, replication_key)
-        entries.append(entry)
+        return None, None, entry
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_sobject, sorted(objects_to_discover)))
+
+    for custom_setting, tag_reference, entry in results:
+        if custom_setting:
+            sf_custom_setting_objects.append(custom_setting)
+        if tag_reference:
+            object_to_tag_references.update(tag_reference)
+        if entry:
+            entries.append(entry)
     
     # Handle ListViews
     views = get_views_list(sf)
@@ -413,7 +425,8 @@ def do_sync(sf, catalog, state,config=None):
     catalog["streams"] = list_view + catalog["streams"]
 
     # Sync Streams
-    for catalog_entry in catalog["streams"]:
+    for read_only_catalog_entry in catalog["streams"]:
+        catalog_entry = copy.deepcopy(read_only_catalog_entry)
         stream_version = get_stream_version(catalog_entry, state)
         stream = catalog_entry['stream']
         stream_alias = catalog_entry.get('stream_alias')
@@ -422,11 +435,9 @@ def do_sync(sf, catalog, state,config=None):
             stream=(stream_alias or stream.replace("/","_")), version=stream_version)
 
         catalog_metadata = metadata.to_map(catalog_entry['metadata'])
-        replication_key = catalog_metadata.get((), {}).get('replication-key')
+        replication_key = next(iter(catalog_metadata.get((), {}).get('valid-replication-keys', [])), None)
 
-        mdata = metadata.to_map(catalog_entry['metadata'])
-
-        if not stream_is_selected(mdata):
+        if not stream_is_selected(catalog_metadata):
             LOGGER.info("%s: Skipping - not selected", stream_name)
             continue
 
@@ -465,9 +476,9 @@ def do_sync(sf, catalog, state,config=None):
                 state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}).pop('JobID', None)
                 state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}).pop('BatchIDs', None)
                 bookmark = state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}) \
-                                                     .pop('JobHighestBookmarkSeen', None)
+                                                    .pop('JobHighestBookmarkSeen', None)
                 existing_bookmark = state.get('bookmarks', {}).get(catalog_entry['tap_stream_id'], {}) \
-                                                              .pop(replication_key, None)
+                                                            .pop(replication_key, None)
                 state = singer.write_bookmark(
                     state,
                     catalog_entry['tap_stream_id'],
@@ -480,14 +491,9 @@ def do_sync(sf, catalog, state,config=None):
             bookmark_is_empty = state.get('bookmarks', {}).get(
                 catalog_entry['tap_stream_id']) is None
 
-            if "/" in state["current_stream"]:
-                # get current name
-                old_key = state["current_stream"]
-                # get the new key name
-                new_key = old_key.replace("/","_")
-                state["current_stream"] = new_key
-
+            state["current_stream"] = state["current_stream"].replace("/", "_")
             catalog_entry['tap_stream_id'] = catalog_entry['tap_stream_id'].replace("/","_")
+
             if replication_key or bookmark_is_empty:
                 singer.write_message(activate_version_message)
                 state = singer.write_bookmark(state,
@@ -496,7 +502,6 @@ def do_sync(sf, catalog, state,config=None):
                                               stream_version)
             counter = sync_stream(sf, catalog_entry, state, input_state, catalog,config)
             LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter.value)
-
     state["current_stream"] = None
     singer.write_state(state)
     LOGGER.info("Finished sync")

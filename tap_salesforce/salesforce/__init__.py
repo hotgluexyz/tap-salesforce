@@ -14,7 +14,8 @@ from tap_salesforce.salesforce.rest import Rest
 from simplejson.scanner import JSONDecodeError
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException,
-    TapSalesforceQuotaExceededException)
+    TapSalesforceQuotaExceededException,
+    RetriableError)
 
 LOGGER = singer.get_logger()
 logging.getLogger('backoff').setLevel(logging.CRITICAL)
@@ -277,7 +278,7 @@ class Salesforce():
 
     # pylint: disable=too-many-arguments
     @backoff.on_exception(backoff.expo,
-                          (ConnectionError, JSONDecodeError),
+                          (ConnectionError, JSONDecodeError, RetriableError),
                           max_tries=10,
                           factor=2,
                           on_backoff=log_backoff_attempt)
@@ -295,6 +296,8 @@ class Salesforce():
         try:
             resp.raise_for_status()
         except RequestException as ex:
+            if 500 <= resp.status_code <600:
+                raise RetriableError(ex)
             raise ex
 
         if resp.headers.get('Sforce-Limit-Info') is not None:

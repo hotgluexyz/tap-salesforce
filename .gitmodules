@@ -1,4 +1,0 @@
-[submodule "test"]
-	path = test
-	url = https://github.com/hotgluexyz/test-framework.git
-	ignore = all

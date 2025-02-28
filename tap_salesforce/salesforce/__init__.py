@@ -296,6 +296,10 @@ class Salesforce():
         try:
             resp.raise_for_status()
         except RequestException as ex:
+            if resp.status_code == 500 and 'List view filter is not FilterByDynsql Context' in resp.text:
+                # Corrupted list view, skip it
+                LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
+                raise ex
             if 500 <= resp.status_code <600:
                 raise RetriableError(ex)
             raise ex

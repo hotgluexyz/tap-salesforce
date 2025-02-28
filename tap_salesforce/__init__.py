@@ -214,7 +214,7 @@ def get_reports_list(sf):
         return output
     headers = sf._get_standard_headers()
     endpoint = "queryAll"
-    params = {'q': 'SELECT Id,FolderName,Name,DeveloperName FROM Report'}
+    params = {'q': 'SELECT Id,FolderName,Name,DeveloperName,IsDeleted FROM Report'}
     url = sf.data_url.format(sf.instance_url, endpoint)
 
     while not done:
@@ -229,6 +229,18 @@ def get_reports_list(sf):
         if not done:
             url = sf.instance_url+response_json.get("nextRecordsUrl")
     return output
+
+
+
+def get_report_metadata(sf, report_id):
+    headers = sf._get_standard_headers()
+    endpoint = f"analytics/reports/{report_id}/describe"
+    url = sf.data_url.format(sf.instance_url, endpoint)
+
+    response = sf._make_request('GET', url, headers=headers)
+
+    return response.json()
+
 
 def get_views_list(sf):
     if not sf.list_views:
@@ -409,6 +421,16 @@ def do_discover(sf):
 
         if reports:
             for report in reports:
+                if report.get("IsDeleted"):
+                    continue
+
+                # Describe report
+                report_metadata = get_report_metadata(sf, report["Id"])
+                columns = report_metadata.get('reportMetadata', {}).get('detailColumns', [])
+                if len(columns) > 100:
+                    LOGGER.warning("Skipping report %s, as it has more than 100 columns", report["DeveloperName"])
+                    continue
+
                 field_name = f"Report_{report['DeveloperName']}"
                 properties[field_name] = dict(type=["null", "object", "string"]) 
                 mdata = metadata.write(

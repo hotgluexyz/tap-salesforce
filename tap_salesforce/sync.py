@@ -117,7 +117,7 @@ def sync_stream(sf, catalog_entry, state, input_state, catalog,config=None):
 
 
 def get_selected_streams(catalog):
-    selected = []
+    selected = set()
     for stream in catalog["streams"]:
         if stream["stream"].startswith("Report_"):
             breadcrumb = next(s for s in stream["metadata"] if s.get("breadcrumb")==())
@@ -127,7 +127,7 @@ def get_selected_streams(catalog):
         metadata = breadcrumb.get("metadata")
         if metadata:
             if metadata.get("selected"):
-                selected.append(stream["stream"])
+                selected.add(stream["stream"])
                 
     return selected
 
@@ -360,10 +360,17 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
         else:
             query_response = sf.query(catalog_entry, state)
 
+        selected = (
+            get_selected_streams(catalog)
+            if stream == "ListView"
+            else set()
+        )
+
         for rec in query_response:
             counter.increment()
-            with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
-                rec = transformer.transform(rec, schema)
+            # TODO: need to make sure this doesn't break anything
+            # with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
+            #     rec = transformer.transform(rec, schema)
             rec = fix_record_anytype(rec, schema)
             if stream=='ContentVersion':
                 if "IsLatest" in rec:
@@ -399,7 +406,6 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     rec[replication_key])
                 singer.write_state(state)
 
-            selected = get_selected_streams(catalog)
             if stream == "ListView" and rec.get("SobjectType") in selected and rec.get("Id") is not None:
                 # Handle listview
                 try:

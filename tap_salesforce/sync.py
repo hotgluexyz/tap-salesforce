@@ -368,9 +368,8 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
 
         for rec in query_response:
             counter.increment()
-            # TODO: need to make sure this doesn't break anything
-            # with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
-            #     rec = transformer.transform(rec, schema)
+            with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
+                rec = transformer.transform(rec, schema)
             rec = fix_record_anytype(rec, schema)
             if stream=='ContentVersion':
                 if "IsLatest" in rec:

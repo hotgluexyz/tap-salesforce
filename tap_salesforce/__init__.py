@@ -425,7 +425,15 @@ def do_discover(sf):
                     continue
 
                 # Describe report
-                report_metadata = get_report_metadata(sf, report["Id"])
+                try:
+                    report_metadata = get_report_metadata(sf, report["Id"])
+                except RequestException as e:
+                    if e.response.status_code == 403 and "The report definition is obsolete." in e.response.text:
+                        LOGGER.info(f"Unable to get metadata for report: '{report['Name']}'. response: {e.response.text}. Skipping!")
+                        continue
+                    else:
+                        raise e
+
                 columns = report_metadata.get('reportMetadata', {}).get('detailColumns', [])
                 if len(columns) > 100:
                     LOGGER.warning("Skipping report %s, as it has more than 100 columns", report["DeveloperName"])

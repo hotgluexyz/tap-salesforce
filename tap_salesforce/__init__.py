@@ -520,9 +520,13 @@ def do_sync(sf, catalog, state,config=None):
         state["current_stream"] = stream_name
         singer.write_state(state)
         key_properties = metadata.to_map(catalog_entry['metadata']).get((), {}).get('table-key-properties')
+        schema = catalog_entry['schema'].copy()
+        for p, v in schema['properties'].items():
+            # force everything to be a string
+            schema['properties'][p] = {'type': ['null', 'string']}
         singer.write_schema(
             stream.replace("/","_"),
-            catalog_entry['schema'],
+            schema,
             key_properties,
             replication_key,
             stream_alias)

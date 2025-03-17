@@ -300,6 +300,8 @@ class Salesforce():
                 # Corrupted list view, skip it
                 LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
                 raise ex
+            if resp.status_code == 501 and "/analytics/reports" in url:
+                raise ex
             if 500 <= resp.status_code <600:
                 raise RetriableError(ex)
             raise ex

@@ -259,7 +259,7 @@ def validate_report(sf, report, valid_reports):
     try:
         report_metadata = get_report_metadata(sf, report["Id"])
     except RequestException as e:
-        if e.response.status_code == 403 and "The report definition is obsolete." in e.response.text:
+        if e.response.status_code in [403, 501]:
             LOGGER.info(f"Unable to get metadata for report: '{report['Name']}'. response: {e.response.text}. Skipping!")
             return
         else:

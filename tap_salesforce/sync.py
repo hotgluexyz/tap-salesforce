@@ -368,6 +368,8 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
 
         for rec in query_response:
             counter.increment()
+            # NOTE: still need this line to get rid of the blacklisted fields
+            rec = remove_blacklisted_fields(rec)
             # with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
             #     rec = transformer.transform(rec, schema)
             rec = fix_record_anytype(rec, schema)

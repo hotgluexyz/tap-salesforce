@@ -521,9 +521,13 @@ def do_sync(sf, catalog, state,config=None):
         singer.write_state(state)
         key_properties = metadata.to_map(catalog_entry['metadata']).get((), {}).get('table-key-properties')
         schema = catalog_entry['schema'].copy()
-        for p, v in schema['properties'].items():
-            # force everything to be a string
-            schema['properties'][p] = {'type': ['null', 'string']}
+
+        # If it's REST we leave types as is
+        if sf.api_type == "BULK":
+            for p, v in schema['properties'].items():
+                # force everything to be a string
+                schema['properties'][p] = {'type': ['null', 'string']}
+
         singer.write_schema(
             stream.replace("/","_"),
             schema,

@@ -242,6 +242,37 @@ def get_report_metadata(sf, report_id):
     return response.json()
 
 
+def validate_listview(sf, lv, responses):
+    sobject = lv['SobjectType']
+    lv_id = lv['Id']
+    try: 
+        sf.listview(sobject,lv_id)
+        responses.append(lv)
+    except RequestException as e:
+        LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}. response: {e.response.text}. url: {e.request.url}")
+
+def validate_report(sf, report, valid_reports):
+    if report.get("IsDeleted"):
+        return
+
+    # Describe report
+    try:
+        report_metadata = get_report_metadata(sf, report["Id"])
+    except RequestException as e:
+        if e.response.status_code in [403, 501]:
+            LOGGER.info(f"Unable to get metadata for report: '{report['Name']}'. response: {e.response.text}. Skipping!")
+            return
+        else:
+            raise e
+    
+    columns = report_metadata.get('reportMetadata', {}).get('detailColumns', [])
+    if len(columns) > 100:
+        LOGGER.warning("Skipping report %s, as it has more than 100 columns", report["DeveloperName"])
+        return
+    
+    valid_reports.append(report)
+
+
 def get_views_list(sf):
     if not sf.list_views:
         return []
@@ -253,15 +284,25 @@ def get_views_list(sf):
     response = sf._make_request('GET', url, headers=headers, params=params)
 
     responses = []
+    list_views = response.json().get("records", [])
+    start_counter = 0
+    concurrency_limit = 25
 
-    for lv in response.json().get("records", []):
-        sobject = lv['SobjectType']
-        lv_id = lv['Id']
-        try: 
-            sf.listview(sobject,lv_id)
-            responses.append(lv)
-        except RequestException as e:
-            LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}. response: {e.response.text}. url: {e.request.url}")
+    while start_counter < len(list_views):
+        end_counter = start_counter + concurrency_limit
+        if end_counter >= len(list_views):
+            end_counter = len(list_views)
+
+        chunk = list_views[start_counter:end_counter]
+        chunk_args = [
+            [
+            sf,
+            lv,
+            responses
+            ]
+         for lv in chunk] 
+        run_concurrently(validate_listview, chunk_args)
+        start_counter = end_counter
 
     return responses
 
@@ -420,25 +461,28 @@ def do_discover(sf):
         properties = {}
 
         if reports:
-            for report in reports:
-                if report.get("IsDeleted"):
-                    continue
+            start_counter = 0
+            concurrency_limit = 25
 
-                # Describe report
-                try:
-                    report_metadata = get_report_metadata(sf, report["Id"])
-                except RequestException as e:
-                    if e.response.status_code == 403 and "The report definition is obsolete." in e.response.text:
-                        LOGGER.info(f"Unable to get metadata for report: '{report['Name']}'. response: {e.response.text}. Skipping!")
-                        continue
-                    else:
-                        raise e
-
-                columns = report_metadata.get('reportMetadata', {}).get('detailColumns', [])
-                if len(columns) > 100:
-                    LOGGER.warning("Skipping report %s, as it has more than 100 columns", report["DeveloperName"])
-                    continue
-
+            valid_reports = []
+            # Cull invalid reports
+            while start_counter < len(reports):
+                end_counter = start_counter + concurrency_limit
+                if end_counter >= len(reports):
+                    end_counter = len(reports)
+                
+                chunk = reports[start_counter:end_counter]
+                chunk_args = [
+                    [
+                        sf,
+                        report,
+                        valid_reports
+                    ]
+                    for report in chunk]
+                run_concurrently(validate_report, chunk_args)
+                start_counter = end_counter
+            
+            for report in valid_reports:
                 field_name = f"Report_{report['DeveloperName']}"
                 properties[field_name] = dict(type=["null", "object", "string"]) 
                 mdata = metadata.write(

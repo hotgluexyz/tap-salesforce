@@ -2,6 +2,7 @@
 import json
 import sys
 import singer
+import time
 import singer.utils as singer_utils
 from singer import metadata, metrics
 import tap_salesforce.salesforce
@@ -534,6 +535,10 @@ def do_sync(sf, catalog, state,config=None):
         LOGGER.info("Resuming sync from %s", starting_stream)
     else:
         LOGGER.info("Starting sync")
+
+    LOGGER.info("Sleeping for 2 hours before continuing sync...")
+    time.sleep(7200)  # Sleep for 2 hours (7200 seconds)
+
     catalog = prepare_reports_streams(catalog)
 
     # Set ListView as first stream to sync to avoid issues with replication-keys

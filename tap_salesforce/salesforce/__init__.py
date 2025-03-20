@@ -288,7 +288,7 @@ class Salesforce():
             resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
             LOGGER.info("Completed %s request to %s with params: %s", http_method, url, params)
         elif http_method == "POST":
-            LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
+            # LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
             resp = self.session.post(url, headers=headers, data=body)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
@@ -324,13 +324,13 @@ class Salesforce():
         login_body = {'grant_type': 'refresh_token', 'client_id': self.sf_client_id,
                       'client_secret': self.sf_client_secret, 'refresh_token': self.refresh_token}
 
-        LOGGER.info("Attempting login via OAuth2")
+        # LOGGER.info("Attempting login via OAuth2")
 
         resp = None
         try:
             resp = self._make_request("POST", login_url, body=login_body, headers={"Content-Type": "application/x-www-form-urlencoded"})
 
-            LOGGER.info("OAuth2 login successful")
+            # LOGGER.info("OAuth2 login successful")
 
             auth = resp.json()
 
@@ -345,7 +345,7 @@ class Salesforce():
                 error_message = error_message + ", Response from Salesforce: {}".format(resp.text)
             raise Exception(error_message) from e
         finally:
-            LOGGER.info("Starting new login timer")
+            # LOGGER.info("Starting new login timer")
             self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD, self.login)
             self.login_timer.start()
 

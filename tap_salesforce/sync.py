@@ -7,6 +7,8 @@ from requests.exceptions import RequestException
 from tap_salesforce.salesforce.bulk import Bulk
 import base64
 
+# Smoke test change
+
 LOGGER = singer.get_logger()
 
 BLACKLISTED_FIELDS = set(['attributes'])

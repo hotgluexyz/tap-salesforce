@@ -62,8 +62,11 @@ jobs:
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           OUTPUT_FILE="smoke_test_output.log"
           
+          # Initialize test status flag
+          TEST_FAILED=0
+          
           # Run the test and capture both stdout and stderr
-          ./bin/smoke_test.sh "$REPO_NAME" '*' --tap-directory ${{ github.workspace }} > "$OUTPUT_FILE" 2>&1
+          ./bin/smoke_test.sh "$REPO_NAME" '*' --tap-directory ${{ github.workspace }} > "$OUTPUT_FILE" 2>&1 || TEST_FAILED=1
           
           # Configure AWS credentials
           aws configure set aws_access_key_id ${{ secrets.SMOKETEST_AWS_ACCESS_KEY_ID }}
@@ -73,3 +76,10 @@ jobs:
           # Upload to S3
           S3_KEY="${{ secrets.SMOKETEST_S3_KEY_PREFIX }}/${{ github.event.repository.name }}/${BRANCH_NAME//\//_}/${TIMESTAMP}.${{ github.sha }}.log"
           aws s3 cp "$OUTPUT_FILE" "s3://${{ secrets.SMOKETEST_S3_BUCKET }}/${S3_KEY}"
+          
+          # Exit based on test status
+          if [ $TEST_FAILED -eq 1 ]; then
+            exit 1
+          else
+            exit 0
+          fi

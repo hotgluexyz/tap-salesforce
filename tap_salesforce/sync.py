@@ -321,7 +321,25 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
 
     else:
-        if catalog_entry["stream"] in ACTIVITY_STREAMS:
+        if config and 'campaign_ids' in config and config['campaign_ids'] and stream in ['Contact', 'Lead']:
+            campaign_ids_str = "'" + "','".join(config['campaign_ids']) + "'"
+            LOGGER.info(f"Filtering {stream} by campaign membership for campaign IDs: {campaign_ids_str}")
+            
+            selected_properties = sf._get_selected_properties(catalog_entry)
+            start_date_str = sf.get_start_date(state, catalog_entry)
+            
+            # Construct the query to filter records by campaign membership
+            if stream == 'Contact':
+                query = f"SELECT {','.join(selected_properties)} FROM Contact WHERE Id IN (SELECT ContactId FROM CampaignMember WHERE CampaignId IN ({campaign_ids_str}) AND ContactId != null)"
+            else:  # Lead
+                query = f"SELECT {','.join(selected_properties)} FROM Lead WHERE Id IN (SELECT LeadId FROM CampaignMember WHERE CampaignId IN ({campaign_ids_str}) AND LeadId != null)"
+            
+            if replication_key:
+                query += f" AND {replication_key} > {start_date_str}"
+                query += f" ORDER BY {replication_key} ASC"
+                
+            query_response = sf.query(catalog_entry, state, query_override=query)
+        elif catalog_entry["stream"] in ACTIVITY_STREAMS:
             start_date_str = sf.get_start_date(state, catalog_entry)
             start_date = singer_utils.strptime_with_tz(start_date_str)
             start_date = singer_utils.strftime(start_date)

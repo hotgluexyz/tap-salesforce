@@ -392,6 +392,10 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             
             campaign_memberships = get_campaign_memberships(sf, campaign_ids, stream)
             selected_properties = sf._get_selected_properties(catalog_entry)
+            
+            if 'CampaignMemberships' in selected_properties:
+                selected_properties.remove('CampaignMemberships')
+                
             start_date_str = sf.get_start_date(state, catalog_entry)
             
             # Construct the query to filter records by campaign membership

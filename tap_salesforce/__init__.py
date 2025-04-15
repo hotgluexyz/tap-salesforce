@@ -106,7 +106,7 @@ def create_property_schema(field, mdata):
     return (property_schema, mdata)
 
 
-def generate_schema(fields, sf, sobject_name, replication_key):
+def generate_schema(fields, sf, sobject_name, replication_key, config=None):
     unsupported_fields = set()
     mdata = metadata.new()
     properties = {}
@@ -143,6 +143,17 @@ def generate_schema(fields, sf, sobject_name, replication_key):
                 mdata, ('properties', field_name), 'selected-by-default', True)
 
         properties[field_name] = property_schema
+
+    if config and config.get('campaign_ids') and sobject_name in ['Contact', 'Lead']:
+        properties['CampaignMemberships'] = {
+            'type': ['null', 'array'],
+            'items': {'type': 'string'}
+        }
+        mdata = metadata.write(
+            mdata, ('properties', 'CampaignMemberships'), 'inclusion', 'available')
+        if sf.select_fields_by_default:
+            mdata = metadata.write(
+                mdata, ('properties', 'CampaignMemberships'), 'selected-by-default', True)
 
     if replication_key:
         mdata = metadata.write(
@@ -351,7 +362,7 @@ def discover_stream(
         )
         return
 
-    entry = generate_schema(fields, sf, sobject_name, replication_key)
+    entry = generate_schema(fields, sf, sobject_name, replication_key, CONFIG)
     entries.append(entry)
 
 

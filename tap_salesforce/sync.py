@@ -321,7 +321,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
 
     else:
-        if config and 'campaign_ids' in config and config['campaign_ids'] and stream in ['Contact', 'Lead']:
+        if config.get("campaign_ids") and stream in ['Contact', 'Lead']:
             campaign_ids_str = "'" + "','".join(config['campaign_ids']) + "'"
             LOGGER.info(f"Filtering {stream} by campaign membership for campaign IDs: {campaign_ids_str}")
             

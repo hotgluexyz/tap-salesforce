@@ -203,6 +203,70 @@ def handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state
                 version=lv_stream_version,
                 time_extracted=start_time))
 
+def get_campaign_memberships(sf, campaign_ids, stream):
+    """
+    Fetches campaign memberships for Contact or Lead records.
+    
+    Args:
+        sf: Salesforce client instance
+        campaign_ids: List of campaign IDs to fetch memberships for
+        stream: Either 'Contact' or 'Lead'
+        
+    Returns:
+        Dictionary mapping Contact/Lead IDs to lists of campaign IDs they belong to
+    """
+    campaign_memberships = {}
+    
+    try:
+        campaign_ids_str = "'" + "','".join(campaign_ids) + "'"
+        headers = sf._get_standard_headers()
+        endpoint = "queryAll"
+        id_field = "ContactId" if stream == "Contact" else "LeadId"
+        
+        # Query to get all campaign memberships
+        membership_query = f"SELECT CampaignId, {id_field} FROM CampaignMember WHERE CampaignId IN ({campaign_ids_str}) AND {id_field} != null"
+        membership_url = sf.data_url.format(sf.instance_url, endpoint)
+        params = {'q': membership_query}
+        
+        # Execute query to get campaign memberships
+        response = sf._make_request('GET', membership_url, headers=headers, params=params)
+        records = response.json().get('records', [])
+        
+        # Process the records and build a membership map
+        for record in records:
+            entity_id = record[id_field]
+            campaign_id = record['CampaignId']
+            
+            if entity_id not in campaign_memberships:
+                campaign_memberships[entity_id] = []
+            
+            campaign_memberships[entity_id].append(campaign_id)
+        
+        # Handle pagination if there are more results
+        next_records_url = response.json().get('nextRecordsUrl')
+        while next_records_url:
+            paginated_url = sf.instance_url + next_records_url
+            response = sf._make_request('GET', paginated_url, headers=headers)
+            records = response.json().get('records', [])
+            
+            for record in records:
+                entity_id = record[id_field]
+                campaign_id = record['CampaignId']
+                
+                if entity_id not in campaign_memberships:
+                    campaign_memberships[entity_id] = []
+                
+                campaign_memberships[entity_id].append(campaign_id)
+            
+            next_records_url = response.json().get('nextRecordsUrl')
+        
+        LOGGER.info(f"Found {len(campaign_memberships)} {stream} records with campaign memberships")
+    except Exception as e:
+        LOGGER.error(f"Error retrieving campaign memberships: {str(e)}")
+        campaign_memberships = {}
+        
+    return campaign_memberships
+
 def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):
     download_files = False
     if "download_files" in config:
@@ -322,9 +386,11 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
 
     else:
         if config.get("campaign_ids") and stream in ['Contact', 'Lead']:
-            campaign_ids_str = "'" + "','".join(config['campaign_ids']) + "'"
+            campaign_ids = config['campaign_ids']
+            campaign_ids_str = "'" + "','".join(campaign_ids) + "'"
             LOGGER.info(f"Filtering {stream} by campaign membership for campaign IDs: {campaign_ids_str}")
             
+            campaign_memberships = get_campaign_memberships(sf, campaign_ids, stream)
             selected_properties = sf._get_selected_properties(catalog_entry)
             start_date_str = sf.get_start_date(state, catalog_entry)
             
@@ -389,6 +455,13 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
                 rec = transformer.transform(rec, schema)
             rec = fix_record_anytype(rec, schema)
+
+            if config.get("campaign_ids") and stream in ['Contact', 'Lead']:
+                if rec['Id'] in campaign_memberships:
+                    rec['CampaignMemberships'] = campaign_memberships[rec['Id']]
+                else:
+                    rec['CampaignMemberships'] = []
+
             if stream=='ContentVersion':
                 if "IsLatest" in rec:
                     if rec['IsLatest']==True and download_files==True:

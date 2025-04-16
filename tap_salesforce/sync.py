@@ -398,14 +398,33 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                 
             start_date_str = sf.get_start_date(state, catalog_entry)
             
-            # Construct the query to filter records by campaign membership
+            # Construct the query to include either Contact/Lead or CampaignMember updates
             if stream == 'Contact':
-                query = f"SELECT {','.join(selected_properties)} FROM Contact WHERE Id IN (SELECT ContactId FROM CampaignMember WHERE CampaignId IN ({campaign_ids_str}) AND ContactId != null)"
+                query = f"""
+                    SELECT {','.join(selected_properties)}
+                    FROM Contact
+                    WHERE Id IN (
+                        SELECT ContactId
+                        FROM CampaignMember
+                        WHERE CampaignId IN ({campaign_ids_str})
+                        AND (SystemModstamp > {start_date_str} OR Contact.SystemModstamp > {start_date_str})
+                        AND ContactId != null
+                    )
+                """
             else:  # Lead
-                query = f"SELECT {','.join(selected_properties)} FROM Lead WHERE Id IN (SELECT LeadId FROM CampaignMember WHERE CampaignId IN ({campaign_ids_str}) AND LeadId != null)"
+                query = f"""
+                    SELECT {','.join(selected_properties)}
+                    FROM Lead
+                    WHERE Id IN (
+                        SELECT LeadId
+                        FROM CampaignMember
+                        WHERE CampaignId IN ({campaign_ids_str})
+                        AND (SystemModstamp > {start_date_str} OR Lead.SystemModstamp > {start_date_str})
+                        AND LeadId != null
+                    )
+                """
             
             if replication_key:
-                query += f" AND {replication_key} > {start_date_str}"
                 query += f" ORDER BY {replication_key} ASC"
                 
             query_response = sf.query(catalog_entry, state, query_override=query)

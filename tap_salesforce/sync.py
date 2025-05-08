@@ -348,11 +348,15 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                 version=stream_version,
                 time_extracted=start_time))
 
-    elif "ListViews" == catalog_entry["stream"]:
+    elif "ListViews" == catalog_entry["stream"] and config.get("list_ids"):
+        list_ids = config.get("list_ids")
+        list_ids_str = "'" + "','".join(list_ids) + "'"
+        LOGGER.info(f"Filtering ListViews by list IDs: {list_ids_str}")
+
         headers = sf._get_standard_headers()
         endpoint = "queryAll"
 
-        params = {'q': f'SELECT Name,Id,SobjectType,DeveloperName FROM ListView'}
+        params = {'q': f'SELECT Name,Id,SobjectType,DeveloperName FROM ListView WHERE Id IN ({list_ids_str})'}
         url = sf.data_url.format(sf.instance_url, endpoint)
         response = sf._make_request('GET', url, headers=headers, params=params)
     

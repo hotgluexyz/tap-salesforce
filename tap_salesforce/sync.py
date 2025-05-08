@@ -348,15 +348,12 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                 version=stream_version,
                 time_extracted=start_time))
 
-    elif "ListViews" == catalog_entry["stream"] and config.get("list_ids"):
-        list_ids = config.get("list_ids")
-        list_ids_str = "'" + "','".join(list_ids) + "'"
-        LOGGER.info(f"Filtering ListViews by list IDs: {list_ids_str}")
+    elif "ListViews" == catalog_entry["stream"]:
 
         headers = sf._get_standard_headers()
         endpoint = "queryAll"
 
-        params = {'q': f'SELECT Name,Id,SobjectType,DeveloperName FROM ListView WHERE Id IN ({list_ids_str})'}
+        params = {'q': f'SELECT Name,Id,SobjectType,DeveloperName FROM ListView'}
         url = sf.data_url.format(sf.instance_url, endpoint)
         response = sf._make_request('GET', url, headers=headers, params=params)
     
@@ -469,7 +466,18 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             query_response = sf.query(catalog_entry, state, query_override=query)
             query_response = unwrap_query(query_response, query_field)
         else:
-            query_response = sf.query(catalog_entry, state)
+            if config.get("list_ids") and stream == "ListView":
+                list_ids = config.get('list_ids')
+                list_ids_quoted = "', '".join(list_ids)
+                query = (
+                    "SELECT Id, Name, DeveloperName, NamespacePrefix, SobjectType, "
+                    "IsSoqlCompatible, CreatedDate, CreatedById, LastModifiedDate, "
+                    "LastModifiedById, SystemModstamp, LastViewedDate, LastReferencedDate "
+                    f"FROM ListView WHERE Id IN ('{list_ids_quoted}')"
+                )
+                query_response = sf.query(catalog_entry, state, query_override=query)
+            else:
+                query_response = sf.query(catalog_entry, state)
 
         selected = (
             get_selected_streams(catalog)

@@ -465,7 +465,17 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             query_response = sf.query(catalog_entry, state, query_override=query)
             query_response = unwrap_query(query_response, query_field)
         else:
-            query_response = sf.query(catalog_entry, state)
+            if config.get("list_ids") and stream in ["ListView"]:
+                selected_streams = get_selected_streams(catalog)
+                if "Contact" in selected_streams or "Lead" in selected_streams:
+                    selected_properties = sf._get_selected_properties(catalog_entry)
+                    quoted_ids = ["'" + id + "'" for id in config['list_ids']]
+                    query = f"SELECT {','.join(selected_properties)} FROM {stream} WHERE Id IN ({','.join(quoted_ids)})"
+                    query_response = sf.query(catalog_entry, state, query_override=query)
+                else:
+                    query_response = sf.query(catalog_entry, state)
+            else:
+                query_response = sf.query(catalog_entry, state)
 
         selected = (
             get_selected_streams(catalog)

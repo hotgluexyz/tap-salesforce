@@ -385,45 +385,92 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
 
     else:
-        if config.get("campaign_ids") and stream in ['Contact', 'Lead']:
-            campaign_ids = config['campaign_ids']
-            campaign_ids_str = "'" + "','".join(campaign_ids) + "'"
-            LOGGER.info(f"Filtering {stream} by campaign membership for campaign IDs: {campaign_ids_str}")
+        if stream in ["Contact", "Lead"]:
+            record_ids = set()
+            list_view_memberships = {}
+            campaign_memberships = {}
+            combined_query = config.get("list_ids") and config.get("campaign_ids")
             
-            campaign_memberships = get_campaign_memberships(sf, campaign_ids, stream)
+            
+            campaign_member_where_clause = lambda entity_name, campaign_ids_str, start_date_str: f"""
+                Id IN (
+                    SELECT {entity_name}Id
+                    FROM CampaignMember
+                    WHERE CampaignId IN ({campaign_ids_str})
+                    AND (SystemModstamp > {start_date_str} OR {entity_name}.SystemModstamp > {start_date_str})
+                    AND {entity_name}Id != null
+                )
+            """
+            
+            if config.get("list_ids"):
+                list_ids = config['list_ids']
+                
+                for list_id in list_ids:
+                    described_list_view = sf.listview(stream, list_id)
+                    entity_query = described_list_view["query"]
+                    entity_query_response = sf.query(catalog_entry, state, query_override=entity_query)
+                    
+                    for entity_rec in entity_query_response:
+                        entity_id = entity_rec["Id"]
+                        record_ids.add(entity_id)
+                        
+                        # Track which list_ids this record belongs to
+                        if entity_id not in list_view_memberships:
+                            list_view_memberships[entity_id] = []
+                        list_view_memberships[entity_id].append(list_id)
+                
+                    LOGGER.info(f"ListView: {list_id} for {stream}")
+                
+                LOGGER.info(f"Found {len(record_ids)} {stream} records in the specified list views")
+            
+            if config.get("campaign_ids"):
+                campaign_ids = config['campaign_ids']
+                campaign_ids_str = "'" + "','".join(campaign_ids) + "'"
+                LOGGER.info(f"Filtering {stream} by campaign membership for campaign IDs: {campaign_ids_str}")
+                
+                campaign_memberships = get_campaign_memberships(sf, campaign_ids, stream)
+                
+            
+            start_date_str = sf.get_start_date(state, catalog_entry)
             selected_properties = sf._get_selected_properties(catalog_entry)
             
+            if 'ListViewMemberships' in selected_properties:
+                selected_properties.remove('ListViewMemberships')
+                
             if 'CampaignMemberships' in selected_properties:
                 selected_properties.remove('CampaignMemberships')
+            
+            if combined_query:
+                quoted_ids = "'" + "','".join(record_ids) + "'"
                 
-            start_date_str = sf.get_start_date(state, catalog_entry)
-            
-            # Construct the query to include either Contact/Lead or CampaignMember updates
-            if stream == 'Contact':
                 query = f"""
                     SELECT {','.join(selected_properties)}
-                    FROM Contact
-                    WHERE Id IN (
-                        SELECT ContactId
-                        FROM CampaignMember
-                        WHERE CampaignId IN ({campaign_ids_str})
-                        AND (SystemModstamp > {start_date_str} OR Contact.SystemModstamp > {start_date_str})
-                        AND ContactId != null
-                    )
+                    FROM {stream}
+                    WHERE (Id IN ({quoted_ids}))
+                    AND {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
                 """
-            else:  # Lead
+                
+            elif config.get("list_ids"):
+                quote_ids = "'" + "','".join(record_ids) + "'"
+                
                 query = f"""
                     SELECT {','.join(selected_properties)}
-                    FROM Lead
-                    WHERE Id IN (
-                        SELECT LeadId
-                        FROM CampaignMember
-                        WHERE CampaignId IN ({campaign_ids_str})
-                        AND (SystemModstamp > {start_date_str} OR Lead.SystemModstamp > {start_date_str})
-                        AND LeadId != null
-                    )
+                    FROM {stream}
+                    WHERE Id IN ({quote_ids}) AND SystemModstamp > {start_date_str}
                 """
-            
+                
+
+            elif config.get("campaign_ids"):
+                entity_name = stream  # "Contact" or "Lead"
+                
+                query = f"""
+                    SELECT {','.join(selected_properties)}
+                    FROM {stream}
+                    WHERE {campaign_member_where_clause(entity_name, campaign_ids_str, start_date_str).strip()}
+                """
+                
+            LOGGER.info(f"Generated query: {query}")
+                
             if replication_key:
                 query += f" ORDER BY {replication_key} ASC"
                 
@@ -465,17 +512,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             query_response = sf.query(catalog_entry, state, query_override=query)
             query_response = unwrap_query(query_response, query_field)
         else:
-            if config.get("list_ids") and stream in ["ListView"]:
-                selected_streams = get_selected_streams(catalog)
-                if "Contact" in selected_streams or "Lead" in selected_streams:
-                    selected_properties = sf._get_selected_properties(catalog_entry)
-                    quoted_ids = ["'" + id + "'" for id in config['list_ids']]
-                    query = f"SELECT {','.join(selected_properties)} FROM {stream} WHERE Id IN ({','.join(quoted_ids)})"
-                    query_response = sf.query(catalog_entry, state, query_override=query)
-                else:
-                    query_response = sf.query(catalog_entry, state)
-            else:
-                query_response = sf.query(catalog_entry, state)
+            query_response = sf.query(catalog_entry, state)
 
         selected = (
             get_selected_streams(catalog)
@@ -489,11 +526,18 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                 rec = transformer.transform(rec, schema)
             rec = fix_record_anytype(rec, schema)
 
-            if config.get("campaign_ids") and stream in ['Contact', 'Lead']:
-                if rec['Id'] in campaign_memberships:
-                    rec['CampaignMemberships'] = campaign_memberships[rec['Id']]
-                else:
-                    rec['CampaignMemberships'] = []
+            if stream in ["Contact", "Lead"]:
+                if config.get("campaign_ids"):
+                    if rec['Id'] in campaign_memberships:
+                        rec['CampaignMemberships'] = campaign_memberships[rec['Id']]
+                    else:
+                        rec['CampaignMemberships'] = []
+                
+                if config.get("list_ids"):
+                    if rec['Id'] in list_view_memberships:
+                        rec['ListViewMemberships'] = list_view_memberships[rec['Id']]
+                    else:
+                        rec['ListViewMemberships'] = []
 
             if stream=='ContentVersion':
                 if "IsLatest" in rec:

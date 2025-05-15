@@ -390,7 +390,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             list_view_memberships = {}
             campaign_memberships = {}
             combined_query = config.get("list_ids") and config.get("campaign_ids")
-            query = None
+            query = ""
             
             campaign_member_where_clause = lambda entity_name, campaign_ids_str, start_date_str: f"""
                 Id IN (

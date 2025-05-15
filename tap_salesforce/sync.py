@@ -385,7 +385,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
 
     else:
-        if stream in ["Contact", "Lead"]:
+        if stream in ["Contact", "Lead"] and (config.get("list_ids") or config.get("campaign_ids")):
             record_ids = set()
             list_view_memberships = {}
             campaign_memberships = {}

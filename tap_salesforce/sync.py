@@ -404,12 +404,19 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             
             if config.get("list_ids"):
                 list_ids = config['list_ids']
-                
-                for list_id in list_ids:
+                quoted_list_ids = "'" + "','".join(list_ids) + "'"
+                query = f"""
+                    SELECT Id FROM ListView WHERE Id IN ({quoted_list_ids})
+                    AND SobjectType = '{stream}'
+                """
+                query_response = sf.query(catalog_entry, state, query_override=query)
+
+                for rec in query_response:
+                    list_id = rec["Id"]
                     described_list_view = sf.listview(stream, list_id)
                     entity_query = described_list_view["query"]
                     entity_query_response = sf.query(catalog_entry, state, query_override=entity_query)
-                    
+
                     for entity_rec in entity_query_response:
                         entity_id = entity_rec["Id"]
                         record_ids.add(entity_id)

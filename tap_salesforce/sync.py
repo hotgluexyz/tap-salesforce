@@ -339,7 +339,7 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
             SELECT {','.join(selected_properties)}
             FROM {stream}
             WHERE (Id IN ({quoted_ids}))
-            AND {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
+            OR {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
         """
     elif config.get("list_ids") and stream_has_lists:
         quote_ids = "'" + "','".join(record_ids) + "'"
@@ -544,16 +544,10 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
 
             if stream in ["Contact", "Lead"]:
                 if config.get("campaign_ids"):
-                    if rec['Id'] in campaign_memberships:
-                        rec['CampaignMemberships'] = campaign_memberships[rec['Id']]
-                    else:
-                        rec['CampaignMemberships'] = []
+                    rec['CampaignMemberships'] = campaign_memberships.get(rec['Id'],[])
                 
                 if config.get("list_ids"):
-                    if rec['Id'] in list_view_memberships:
-                        rec['ListViewMemberships'] = list_view_memberships[rec['Id']]
-                    else:
-                        rec['ListViewMemberships'] = []
+                    rec['ListViewMemberships'] = list_view_memberships.get(rec['Id'],[])
 
             if stream=='ContentVersion':
                 if "IsLatest" in rec:

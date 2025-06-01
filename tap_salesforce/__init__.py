@@ -584,6 +584,7 @@ def create_report_stream(report_name):
 
         mdata = metadata.write(mdata, (), 'table-key-properties', [])
         mdata = metadata.write(mdata, (), 'selected', True)
+        mdata = metadata.write(mdata, (), 'is-custom-report', True)
 
         schema = {
             'type': 'object',

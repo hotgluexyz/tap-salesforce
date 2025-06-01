@@ -119,10 +119,12 @@ def sync_stream(sf, catalog_entry, state, input_state, catalog,config=None):
 def get_selected_streams(catalog):
     selected = set()
     for stream in catalog["streams"]:
-        if stream["stream"].startswith("Report_"):
-            breadcrumb = next(s for s in stream["metadata"] if s.get("breadcrumb")==())
-        else:
-            breadcrumb = next(s for s in stream["metadata"] if s.get("breadcrumb")==[])     
+        breadcrumb = next(
+            (s for s in stream["metadata"] 
+             if (s.get("breadcrumb")==() or s.get("breadcrumb")==[])),
+             None)
+        if not breadcrumb:
+            raise Exception(f"No breadcrumb found for stream {stream['stream']}. Catalog is likely malformed.")
         
         metadata = breadcrumb.get("metadata")
         if metadata:
@@ -267,6 +269,19 @@ def get_campaign_memberships(sf, campaign_ids, stream):
         
     return campaign_memberships
 
+def is_custom_report(stream):
+    breadcrumb = next(
+        (s for s in stream["metadata"] 
+        if (s.get("breadcrumb")==() or s.get("breadcrumb")==[])),
+        None)
+    if not breadcrumb:
+        return False
+    metadata = breadcrumb.get("metadata")
+    if metadata:
+        if metadata.get("is-custom-report"):
+            return True
+    return False
+
 def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):
     download_files = False
     if "download_files" in config:
@@ -311,7 +326,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             replication_key,
             singer_utils.strftime(chunked_bookmark))
 
-    if catalog_entry["stream"].startswith("Report_"):
+    if is_custom_report(catalog_entry):
         report_name = catalog_entry["stream"].split("Report_", 1)[1]
         
         reports = []

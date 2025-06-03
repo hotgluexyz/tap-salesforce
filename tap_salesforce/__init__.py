@@ -105,6 +105,16 @@ def create_property_schema(field, mdata):
 
     return (property_schema, mdata)
 
+def add_synthetic_field(properties, mdata, field_name, field_type, field_format, sf):
+    properties[field_name] = {
+        'type': ['null', field_type],
+        'items': {'type': field_format}
+    }
+    mdata = metadata.write(
+        mdata, ('properties', field_name), 'inclusion', 'available')
+    if sf.select_fields_by_default:
+        mdata = metadata.write(
+            mdata, ('properties', field_name), 'selected-by-default', True)
 
 def generate_schema(fields, sf, sobject_name, replication_key, config=None):
     unsupported_fields = set()
@@ -144,16 +154,11 @@ def generate_schema(fields, sf, sobject_name, replication_key, config=None):
 
         properties[field_name] = property_schema
 
-    if config and config.get('campaign_ids') and sobject_name in ['Contact', 'Lead']:
-        properties['CampaignMemberships'] = {
-            'type': ['null', 'array'],
-            'items': {'type': 'string'}
-        }
-        mdata = metadata.write(
-            mdata, ('properties', 'CampaignMemberships'), 'inclusion', 'available')
-        if sf.select_fields_by_default:
-            mdata = metadata.write(
-                mdata, ('properties', 'CampaignMemberships'), 'selected-by-default', True)
+    if config and sobject_name in ['Contact', 'Lead']:
+        if config.get("campaign_ids"):
+            add_synthetic_field(properties, mdata, 'CampaignMemberships', 'array', 'string', sf)
+        elif config.get("list_ids"):
+            add_synthetic_field(properties, mdata, 'ListViewMemberships', 'array', 'string', sf)
 
     if replication_key:
         mdata = metadata.write(
@@ -663,7 +668,7 @@ def main_impl():
             default_start_date=CONFIG.get('start_date'),
             api_type=CONFIG.get('api_type'),
             list_reports=CONFIG.get('list_reports'),
-            list_views=CONFIG.get('list_views'),
+            list_views=CONFIG.get('list_views'),            # config 
             api_version=CONFIG.get('api_version')
             )
         sf.login()

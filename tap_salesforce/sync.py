@@ -343,11 +343,15 @@ def _extract_ids_from_rows(rows, stream):
 # Update the sync_filtered_accounts function around line 408-415
 
 def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config):
+    if not any([config.get("list_ids"), config.get("campaign_ids"), config.get("report_ids")]):
+        raise ValueError("At least one filtering method (list_ids, campaign_ids, or report_ids) must be specified")
 
     record_ids = set()
     list_view_memberships = {}
     campaign_memberships = {}
-    combined_query = config.get("list_ids") and config.get("campaign_ids") 
+    has_record_filters = config.get("list_ids") or config.get("report_ids")
+    has_campaign_filters = config.get("campaign_ids")
+    combined_query = has_record_filters and has_campaign_filters
     query = ""
     
     campaign_member_where_clause = lambda entity_name, campaign_ids_str, start_date_str: f"""
@@ -412,7 +416,8 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
     if 'CampaignMemberships' in selected_properties:
         selected_properties.remove('CampaignMemberships')
     
-    if combined_query and stream_has_lists:
+
+    if combined_query and record_ids:
         quoted_ids = "'" + "','".join(record_ids) + "'"
         
         query = f"""
@@ -421,13 +426,13 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
             WHERE (Id IN ({quoted_ids}))
             OR {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
         """
-    elif config.get("list_ids") and stream_has_lists:
-        quote_ids = "'" + "','".join(record_ids) + "'"
+    elif record_ids:  # Handle any record filtering (list_ids or report_ids)
+        quoted_ids = "'" + "','".join(record_ids) + "'"
         
         query = f"""
             SELECT {','.join(selected_properties)}
             FROM {stream}
-            WHERE Id IN ({quote_ids}) AND SystemModstamp > {start_date_str}
+            WHERE Id IN ({quoted_ids}) AND SystemModstamp > {start_date_str}
         """
     elif config.get("campaign_ids"):
         entity_name = stream  # "Contact" or "Lead"
@@ -448,6 +453,7 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
     query_response = sf.query(catalog_entry, state, query_override=query)
 
     return query_response, campaign_memberships, list_view_memberships
+
 def is_custom_report(stream):
     breadcrumb = next(
         (s for s in stream["metadata"] 

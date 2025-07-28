@@ -269,13 +269,85 @@ def get_campaign_memberships(sf, campaign_ids, stream):
         
     return campaign_memberships
 
+def get_report_record_ids(sf, report_ids, stream):
+    """
+    Executes Salesforce reports and extracts record IDs for filtering.
+    
+    Args:
+        sf: Salesforce client instance
+        report_ids: List of report IDs to execute
+        stream: Either 'Contact' or 'Lead'
+        
+    Returns:
+        Set of record IDs found in the reports
+    """
+    record_ids = set()
+    
+    try:
+        headers = sf._get_standard_headers()
+        
+        for report_id in report_ids:
+            try:
+                endpoint = f"analytics/reports/{report_id}"
+                url = sf.data_url.format(sf.instance_url, endpoint)
+                params = {'includeDetails': 'true'}
+                
+                LOGGER.info(f"Executing report {report_id} for {stream} filtering")
+                response = sf._make_request('GET', url, headers=headers, params=params)
+                report_data = response.json()
+                
+                fact_map = report_data.get('factMap', {})
+                
+                # Handle different report types
+                if 'T!T' in fact_map and 'rows' in fact_map['T!T']:
+                    # Non-grouped reports
+                    rows = fact_map['T!T']['rows']
+                    record_ids.update(_extract_ids_from_rows(rows, stream))
+                else:
+                    # Grouped reports - need to traverse the structure
+                    for key, section in fact_map.items():
+                        if isinstance(section, dict) and 'rows' in section:
+                            rows = section['rows']
+                            record_ids.update(_extract_ids_from_rows(rows, stream))
+                
+                LOGGER.info(f"Found {len(record_ids)} {stream} IDs from report {report_id}")
+                
+            except Exception as e:
+                LOGGER.warning(f"Error executing report {report_id}: {str(e)}")
+                continue
+                
+    except Exception as e:
+        LOGGER.error(f"Error retrieving report data: {str(e)}")
+        
+    return record_ids
+
+def _extract_ids_from_rows(rows, stream):
+    """
+    Helper function to extract record IDs from report rows.
+    Looks for Contact or Lead IDs in the data cells.
+    """
+    ids = set()
+    
+    for row in rows:
+        data_cells = row.get('dataCells', [])
+        for cell in data_cells:
+            value = cell.get('value') or cell.get('label', '')
+            # Check if this looks like a Salesforce ID for the target object
+            if (isinstance(value, str) and len(value) in [15, 18] and 
+                ((stream == 'Contact' and value.startswith('003')) or
+                 (stream == 'Lead' and value.startswith('00Q')))):
+                ids.add(value)
+    
+    return ids
+
+# Update the sync_filtered_accounts function around line 408-415
 
 def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config):
 
     record_ids = set()
     list_view_memberships = {}
     campaign_memberships = {}
-    combined_query = config.get("list_ids") and config.get("campaign_ids")
+    combined_query = config.get("list_ids") and config.get("campaign_ids") 
     query = ""
     
     campaign_member_where_clause = lambda entity_name, campaign_ids_str, start_date_str: f"""
@@ -316,14 +388,20 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
             LOGGER.info(f"ListView: {list_id} for {stream}")
         
         LOGGER.info(f"Found {len(record_ids)} {stream} records in the specified list views")
-    
+
+    if config.get("report_ids"):
+        report_ids = config["report_ids"]
+        LOGGER.info(f"Filtering {stream} by report results for report IDs: {report_ids}")
+        
+        report_record_ids = get_report_record_ids(sf, report_ids, stream)
+        record_ids.update(report_record_ids)
+
     if config.get("campaign_ids"):
         campaign_ids = config['campaign_ids']
         campaign_ids_str = "'" + "','".join(campaign_ids) + "'"
         LOGGER.info(f"Filtering {stream} by campaign membership for campaign IDs: {campaign_ids_str}")
         
         campaign_memberships = get_campaign_memberships(sf, campaign_ids, stream)
-        
     
     start_date_str = sf.get_start_date(state, catalog_entry)
     selected_properties = sf._get_selected_properties(catalog_entry)
@@ -503,7 +581,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
 
     else:
-        if stream in ["Contact", "Lead"] and "list_ids" in config or "campaign_ids" in config: 
+        if stream in ["Contact", "Lead"] and ("list_ids" in config or "campaign_ids" in config or "report_ids" in config): 
             query_response, campaign_memberships, list_view_memberships = sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config)
         elif catalog_entry["stream"] in ACTIVITY_STREAMS:
             start_date_str = sf.get_start_date(state, catalog_entry)

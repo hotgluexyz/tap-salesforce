@@ -282,7 +282,9 @@ def validate_report(sf, report, valid_reports):
             raise e
     
     columns = report_metadata.get('reportMetadata', {}).get('detailColumns', [])
-    if len(columns) > 100:
+    # multi block reports (grouped) don't have detailColumns, so columns could be None
+    # tap is handling fetching records for multi block reports (grouped) in get_report_record_ids
+    if columns is not None and len(columns) > 100:
         LOGGER.warning("Skipping report %s, as it has more than 100 columns", report["DeveloperName"])
         return
     

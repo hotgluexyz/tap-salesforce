@@ -434,6 +434,9 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
             FROM {stream}
             WHERE Id IN ({quoted_ids}) AND SystemModstamp > {start_date_str}
         """
+    elif has_record_filters and not record_ids:
+        LOGGER.info(f"No {stream} records found in the specified list views or reports")
+        return iter([]), campaign_memberships, list_view_memberships
     elif config.get("campaign_ids"):
         entity_name = stream  # "Contact" or "Lead"
         

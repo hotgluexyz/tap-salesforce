@@ -282,13 +282,13 @@ class Salesforce():
                           max_tries=10,
                           factor=2,
                           on_backoff=log_backoff_attempt)
-    def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None):
+    def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, hide_body_in_logs=False):
         if http_method == "GET":
             LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
             resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
             LOGGER.info("Completed %s request to %s with params: %s", http_method, url, params)
         elif http_method == "POST":
-            LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
+            LOGGER.info("Making %s request to %s with body %s", http_method, url, body if not hide_body_in_logs else "**hidden**")
             resp = self.session.post(url, headers=headers, data=body)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
@@ -328,7 +328,7 @@ class Salesforce():
 
         resp = None
         try:
-            resp = self._make_request("POST", login_url, body=login_body, headers={"Content-Type": "application/x-www-form-urlencoded"})
+            resp = self._make_request("POST", login_url, body=login_body, headers={"Content-Type": "application/x-www-form-urlencoded"}, hide_body_in_logs=True)
 
             LOGGER.info("OAuth2 login successful")
 

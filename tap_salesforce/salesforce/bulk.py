@@ -8,11 +8,13 @@ import singer
 from singer import metrics
 import requests
 from requests.exceptions import RequestException
+import urllib3.exceptions
+import backoff
 
 import xmltodict
 
 from tap_salesforce.salesforce.exceptions import (
-    TapSalesforceException, TapSalesforceQuotaExceededException)
+    RetriableError, TapSalesforceException, TapSalesforceQuotaExceededException)
 
 BATCH_STATUS_POLLING_SLEEP = 20
 PK_CHUNKED_BATCH_STATUS_POLLING_SLEEP = 60
@@ -20,6 +22,10 @@ ITER_CHUNK_SIZE = 1024
 DEFAULT_CHUNK_SIZE = 100000 # Max is 250000
 
 LOGGER = singer.get_logger()
+
+def log_backoff_attempt(details):
+    LOGGER.info("ConnectionFailure detected, triggering backoff: %d try", details.get("tries"))
+
 
 # pylint: disable=inconsistent-return-statements
 def find_parent(stream):
@@ -306,7 +312,20 @@ class Bulk():
             url = self.bulk_url.format(self.sf.instance_url, endpoint)
             headers['Content-Type'] = 'text/csv'
 
-            with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8") as csv_file:
+            records = self._process_response_chunks(url, headers)
+            for rec in records:
+                yield rec
+                
+    @backoff.on_exception(backoff.expo,
+                          (RetriableError),
+                          max_tries=5,
+                          factor=2,
+                          on_backoff=log_backoff_attempt)
+    def _process_response_chunks(self, url, headers):
+        """Make API call and process chunked response content with retry logic."""
+        records = []
+        with tempfile.NamedTemporaryFile(mode="w+", encoding="utf8") as csv_file:
+            try:
                 resp = self.sf._make_request('GET', url, headers=headers, stream=True)
                 for chunk in resp.iter_content(chunk_size=ITER_CHUNK_SIZE, decode_unicode=True):
                     if chunk:
@@ -322,7 +341,15 @@ class Bulk():
 
                 for line in csv_reader:
                     rec = dict(zip(column_name_list, line))
-                    yield rec
+                    records.append(rec)
+                    
+            except urllib3.exceptions.InvalidChunkLength as e:
+                LOGGER.error("Invalid chunk length error while processing response chunks: %s. Retrying...", str(e))
+                raise RetriableError(f"Failed to process response chunks due to invalid chunk length: {str(e)}") from e
+            except Exception as e:
+                raise e
+                
+        return records
 
     def _close_job(self, job_id):
         endpoint = "job/{}".format(job_id)

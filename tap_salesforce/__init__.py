@@ -641,8 +641,8 @@ def do_sync(sf, catalog, state,config=None):
                                               catalog_entry['tap_stream_id'],
                                               'version',
                                               stream_version)
-            counter = sync_stream(sf, catalog_entry, state, input_state, catalog,config)
-            LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter.value)
+            counter_value = sync_stream(sf, catalog_entry, state, input_state, catalog,config)
+            LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
     state["current_stream"] = None
     singer.write_state(state)

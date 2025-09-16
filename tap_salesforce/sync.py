@@ -102,6 +102,8 @@ def resume_syncing_bulk_query(sf, catalog_entry, job_id, state, counter):
 def sync_stream(sf, catalog_entry, state, input_state, catalog,config=None):
     stream = catalog_entry['stream']
 
+    counter_value = 0
+
     with metrics.record_counter(stream) as counter:
         try:
             sync_records(sf, catalog_entry, state, input_state, counter, catalog,config)
@@ -113,8 +115,9 @@ def sync_stream(sf, catalog_entry, state, input_state, catalog,config=None):
             raise Exception("Error syncing {}: {}".format(
                 stream, ex)) from ex
 
-        return counter
+        counter_value = counter.value
 
+    return counter_value
 
 def get_selected_streams(catalog):
     selected = set()
@@ -299,7 +302,7 @@ def get_report_record_ids(sf, report_ids, stream):
                 fact_map = report_data.get('factMap', {})
                 
                 # Handle different report types
-                if 'T!T' in fact_map and 'rows' in fact_map['T!T']:
+                if 'T!T' in fact_map and 'rows' in fact_map['T!T'] and fact_map['T!T']["rows"]:
                     # Non-grouped reports
                     rows = fact_map['T!T']['rows']
                     record_ids.update(_extract_ids_from_rows(rows, stream))
@@ -341,6 +344,32 @@ def _extract_ids_from_rows(rows, stream):
     return ids
 
 # Update the sync_filtered_accounts function around line 408-415
+
+def _chunk_list(lst, chunk_size):
+    """Split a list into chunks of specified size."""
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i:i + chunk_size]
+
+def _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, chunk_size=500):
+    """Execute queries in chunks when there are too many record IDs."""
+    record_id_list = list(record_ids)
+    all_results = []
+    
+    for chunk in _chunk_list(record_id_list, chunk_size):
+        quoted_ids = "'" + "','".join(chunk) + "'"
+        chunked_query = base_query.format(quoted_ids=quoted_ids)
+        
+        LOGGER.info(f"Executing chunked query with {len(chunk)} record IDs")
+        query_response = sf.query(catalog_entry, state, query_override=chunked_query)
+        
+        # Collect results from this chunk
+        chunk_results = list(query_response)
+        all_results.extend(chunk_results)
+        
+        LOGGER.info(f"Retrieved {len(chunk_results)} records from chunk")
+    
+    LOGGER.info(f"Total records retrieved from all chunks: {len(all_results)}")
+    return iter(all_results)
 
 def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config):
     if not any([config.get("list_ids"), config.get("campaign_ids"), config.get("report_ids")]):
@@ -416,24 +445,34 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
     if 'CampaignMemberships' in selected_properties:
         selected_properties.remove('CampaignMemberships')
     
-
+    # Define chunk size for large record sets to avoid header size limits
+    CHUNK_SIZE = 100
+    
     if combined_query and record_ids:
-        quoted_ids = "'" + "','".join(record_ids) + "'"
-        
-        query = f"""
+        # For combined queries, we need to handle chunking differently
+        base_query = f"""
             SELECT {','.join(selected_properties)}
             FROM {stream}
-            WHERE (Id IN ({quoted_ids}))
+            WHERE (Id IN ({{quoted_ids}}))
             OR {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
         """
-    elif record_ids:  # Handle any record filtering (list_ids or report_ids)
-        quoted_ids = "'" + "','".join(record_ids) + "'"
         
-        query = f"""
+        if replication_key:
+            base_query += f" ORDER BY {replication_key} ASC"
+            
+        query_response = _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, CHUNK_SIZE)
+    elif record_ids:  # Handle any record filtering (list_ids or report_ids)
+        base_query = f"""
             SELECT {','.join(selected_properties)}
             FROM {stream}
-            WHERE Id IN ({quoted_ids}) AND SystemModstamp > {start_date_str}
+            WHERE Id IN ({{quoted_ids}}) AND SystemModstamp > {start_date_str}
         """
+        
+        if replication_key:
+            base_query += f" ORDER BY {replication_key} ASC"
+            
+        query_response = _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, CHUNK_SIZE)
+
     elif has_record_filters and not record_ids:
         LOGGER.info(f"No {stream} records found in the specified list views or reports")
         return iter([]), campaign_memberships, list_view_memberships
@@ -445,15 +484,20 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
             FROM {stream}
             WHERE {campaign_member_where_clause(entity_name, campaign_ids_str, start_date_str).strip()}
         """
+        
+        if replication_key:
+            query += f" ORDER BY {replication_key} ASC"
+            
+        LOGGER.info(f"Generated campaign filter query: {query}")
+        query_response = sf.query(catalog_entry, state, query_override=query)
     else:
         query = f"SELECT {','.join(selected_properties)} FROM {stream} WHERE SystemModstamp > {start_date_str}"
         
-    LOGGER.info(f"Generated query: {query}")
-        
-    if replication_key:
-        query += f" ORDER BY {replication_key} ASC"
-        
-    query_response = sf.query(catalog_entry, state, query_override=query)
+        if replication_key:
+            query += f" ORDER BY {replication_key} ASC"
+            
+        LOGGER.info(f"Generated default query: {query}")
+        query_response = sf.query(catalog_entry, state, query_override=query)
 
     return query_response, campaign_memberships, list_view_memberships
 

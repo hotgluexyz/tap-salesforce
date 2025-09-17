@@ -6,7 +6,8 @@ from singer import Transformer, metadata, metrics
 from requests.exceptions import RequestException
 from tap_salesforce.salesforce.bulk import Bulk
 import base64
-
+from io import BytesIO
+from openpyxl import load_workbook
 LOGGER = singer.get_logger()
 
 BLACKLISTED_FIELDS = set(['attributes'])
@@ -272,6 +273,60 @@ def get_campaign_memberships(sf, campaign_ids, stream):
         
     return campaign_memberships
 
+def get_report_record_ids_from_xlsx(sf, report_ids, stream):
+    try:
+        headers = sf._get_standard_headers()
+        record_ids = set()
+        
+        for report_id in report_ids:
+            try:
+                endpoint = f"analytics/reports/{report_id}"
+                url = sf.data_url.format(sf.instance_url, endpoint)
+                headers["Accept"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                headers.pop("Content-Type", None)
+                params = {"includeDetails": "true"}
+                resp = sf._make_request("GET", url, headers=headers, params=params)
+
+                # read the excel file by row, process and export the output
+                excel_file = BytesIO(resp.content)
+                workbook = load_workbook(excel_file)
+                sheet = workbook.active
+                headers = None
+                
+                # Save the excel file
+                # with open("report.xlsx", "wb") as f:
+                #     f.write(resp.content)
+
+                header_row_found = False
+                if stream == "Contact":
+                    target_field = "Contact ID"
+                elif stream == "Lead":
+                    target_field = "Lead ID"
+                else:
+                    raise ValueError(f"Invalid stream: {stream}")
+
+                target_field_idx = None
+
+                for idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+                    if target_field in row:
+                        header_row_found = True
+                        target_field_idx = row.index(target_field)
+                        continue
+                    
+                    if header_row_found and row[target_field_idx] and isinstance(row[target_field_idx], str):
+                        record_ids.add(row[target_field_idx])
+
+                LOGGER.info(f"Found {len(record_ids)} {stream} IDs from report {report_id}")
+
+            except Exception as e:
+                LOGGER.warning(f"Error retrieving report {report_id}: {str(e)}")
+                continue
+                
+    except Exception as e:
+        LOGGER.error(f"Error retrieving report data: {str(e)}")
+    
+    return record_ids
+
 def get_report_record_ids(sf, report_ids, stream):
     """
     Executes Salesforce reports and extracts record IDs for filtering.
@@ -426,7 +481,8 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
         report_ids = config["report_ids"]
         LOGGER.info(f"Filtering {stream} by report results for report IDs: {report_ids}")
         
-        report_record_ids = get_report_record_ids(sf, report_ids, stream)
+        # report_record_ids = get_report_record_ids(sf, report_ids, stream)
+        report_record_ids = get_report_record_ids_from_xlsx(sf, report_ids, stream)
         record_ids.update(report_record_ids)
 
     if config.get("campaign_ids"):

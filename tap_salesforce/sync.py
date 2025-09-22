@@ -300,8 +300,10 @@ def get_report_record_ids_from_xlsx(sf, report_ids, stream):
                 header_row_found = False
                 if stream == "Contact":
                     target_field = "Contact ID"
+                    id_prefix = "003"
                 elif stream == "Lead":
                     target_field = "Lead ID"
+                    id_prefix = "00Q"
                 else:
                     raise ValueError(f"Invalid stream: {stream}")
 
@@ -313,18 +315,17 @@ def get_report_record_ids_from_xlsx(sf, report_ids, stream):
                         target_field_idx = row.index(target_field)
                         continue
                     
-                    if header_row_found and row[target_field_idx] and isinstance(row[target_field_idx], str):
+                    if header_row_found and row[target_field_idx] and isinstance(row[target_field_idx], str) and row[target_field_idx].startswith(id_prefix):
                         record_ids.add(row[target_field_idx])
 
                 LOGGER.info(f"Found {len(record_ids)} {stream} IDs from report {report_id}")
 
             except Exception as e:
-                LOGGER.warning(f"Error retrieving report {report_id}: {str(e)}")
-                continue
+                raise Exception(f"Error retrieving report {report_id}: {str(e)}")
                 
     except Exception as e:
-        LOGGER.error(f"Error retrieving report data: {str(e)}")
-    
+        raise Exception(f"Error retrieving report data: {str(e)}")
+
     return record_ids
 
 def get_report_record_ids(sf, report_ids, stream):

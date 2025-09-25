@@ -14,7 +14,8 @@ from tap_salesforce.salesforce.rest import Rest
 from simplejson.scanner import JSONDecodeError
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException,
-    TapSalesforceQuotaExceededException)
+    TapSalesforceQuotaExceededException,
+    RetriableError)
 
 LOGGER = singer.get_logger()
 logging.getLogger('backoff').setLevel(logging.CRITICAL)
@@ -284,25 +285,33 @@ class Salesforce():
 
     # pylint: disable=too-many-arguments
     @backoff.on_exception(backoff.expo,
-                          (ConnectionError, JSONDecodeError),
+                          (ConnectionError, JSONDecodeError, RetriableError),
                           max_tries=10,
                           factor=2,
                           on_backoff=log_backoff_attempt)
-    def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, json=None):
+    def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, hide_body_in_logs=False):
         if http_method == "GET":
             LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
             resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
             LOGGER.info("Completed %s request to %s with params: %s", http_method, url, params)
         elif http_method == "POST":
-            LOGGER.info("Making %s request to %s with body %s", http_method, url, body)
-            resp = self.session.post(url, headers=headers, data=body, json=json, params=params)
+            LOGGER.info("Making %s request to %s with body %s", http_method, url, body if not hide_body_in_logs else "**hidden**")
+            resp = self.session.post(url, headers=headers, data=body)
         else:
             raise TapSalesforceException("Unsupported HTTP method")
 
         try:
             resp.raise_for_status()
         except RequestException as ex:
-            raise Exception(f"Error: {ex}. Response: {resp.text}")
+            if resp.status_code == 500 and 'List view filter is not FilterByDynsql Context' in resp.text:
+                # Corrupted list view, skip it
+                LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
+                raise ex
+            if resp.status_code == 501 and "/analytics/reports" in url:
+                raise ex
+            if 500 <= resp.status_code <600:
+                raise RetriableError(ex)
+            raise ex
 
         if resp.headers.get('Sforce-Limit-Info') is not None:
             self.rest_requests_attempted += 1
@@ -326,7 +335,7 @@ class Salesforce():
 
         resp = None
         try:
-            resp = self._make_request("POST", login_url, body=login_body, headers={"Content-Type": "application/x-www-form-urlencoded"})
+            resp = self._make_request("POST", login_url, body=login_body, headers={"Content-Type": "application/x-www-form-urlencoded"}, hide_body_in_logs=True)
 
             LOGGER.info("OAuth2 login successful")
 

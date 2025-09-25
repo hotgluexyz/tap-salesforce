@@ -102,3 +102,6 @@ config.json
 .autoenv.zsh
 
 *~
+
+.vscode
+.venv

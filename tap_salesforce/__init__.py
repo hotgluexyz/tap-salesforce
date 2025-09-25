@@ -11,6 +11,7 @@ from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 LOGGER = singer.get_logger()
 
@@ -108,8 +109,18 @@ def create_property_schema(field, mdata, is_report=False):
 
     return (property_schema, mdata)
 
+def add_synthetic_field(properties, mdata, field_name, field_type, field_format, sf):
+    properties[field_name] = {
+        'type': ['null', field_type],
+        'items': {'type': field_format}
+    }
+    mdata = metadata.write(
+        mdata, ('properties', field_name), 'inclusion', 'available')
+    if sf.select_fields_by_default:
+        mdata = metadata.write(
+            mdata, ('properties', field_name), 'selected-by-default', True)
 
-def generate_schema(fields, sf, sobject_name, replication_key, sobject_description):
+def generate_schema(fields, sf, sobject_name, replication_key, config=None):
     unsupported_fields = set()
     mdata = metadata.new()
     properties = {}
@@ -144,6 +155,12 @@ def generate_schema(fields, sf, sobject_name, replication_key, sobject_descripti
                 (field_name, sf.get_blacklisted_fields()[field_pair]))
 
         properties[field_name] = property_schema
+
+    if config and sobject_name in ['Contact', 'Lead']:
+        if config.get("campaign_ids"):
+            add_synthetic_field(properties, mdata, 'CampaignMemberships', 'array', 'string', sf)
+        elif config.get("list_ids"):
+            add_synthetic_field(properties, mdata, 'ListViewMemberships', 'array', 'string', sf)
 
     if replication_key:
         mdata = metadata.write(
@@ -255,14 +272,14 @@ def get_reports_list(sf):
         return output
     headers = sf._get_standard_headers()
     endpoint = "queryAll"
-    params = {'q': 'SELECT Id,FolderName,Name,DeveloperName FROM Report'}
+    params = {'q': 'SELECT Id,FolderName,Name,DeveloperName,IsDeleted FROM Report'}
     url = sf.data_url.format(sf.instance_url, endpoint)
 
     while not done:
         try:
             response = sf._make_request('GET', url, headers=headers, params=params)
         except HTTPError as e:
-            LOGGER.warning("Reports not supported.")
+            LOGGER.warning(f"Reports not supported. status_code={e.response.status_code}. response={e.response.json()}. url={e.request.url}")
             return output
         response_json = response.json()
         done = response_json.get("done")
@@ -270,6 +287,51 @@ def get_reports_list(sf):
         if not done:
             url = sf.instance_url+response_json.get("nextRecordsUrl")
     return output
+
+
+
+def get_report_metadata(sf, report_id):
+    headers = sf._get_standard_headers()
+    endpoint = f"analytics/reports/{report_id}/describe"
+    url = sf.data_url.format(sf.instance_url, endpoint)
+
+    response = sf._make_request('GET', url, headers=headers)
+
+    return response.json()
+
+
+def validate_listview(sf, lv, responses):
+    sobject = lv['SobjectType']
+    lv_id = lv['Id']
+    try: 
+        sf.listview(sobject,lv_id)
+        responses.append(lv)
+    except RequestException as e:
+        LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}. response: {e.response.text}. url: {e.request.url}")
+
+def validate_report(sf, report, valid_reports):
+    if report.get("IsDeleted"):
+        return
+
+    # Describe report
+    try:
+        report_metadata = get_report_metadata(sf, report["Id"])
+    except RequestException as e:
+        if e.response.status_code in [403, 501]:
+            LOGGER.info(f"Unable to get metadata for report: '{report['Name']}'. response: {e.response.text}. Skipping!")
+            return
+        else:
+            raise e
+    
+    columns = report_metadata.get('reportMetadata', {}).get('detailColumns', [])
+    # multi block reports (grouped) don't have detailColumns, so columns could be None
+    # tap is handling fetching records for multi block reports (grouped) in get_report_record_ids
+    if columns is not None and len(columns) > 100:
+        LOGGER.warning("Skipping report %s, as it has more than 100 columns", report["DeveloperName"])
+        return
+    
+    valid_reports.append(report)
+
 
 def get_views_list(sf):
     if not sf.list_views:
@@ -282,19 +344,98 @@ def get_views_list(sf):
     response = sf._make_request('GET', url, headers=headers, params=params)
 
     responses = []
+    list_views = response.json().get("records", [])
+    start_counter = 0
+    concurrency_limit = 25
 
-    for lv in response.json().get("records", []):
-        sobject = lv['SobjectType']
-        lv_id = lv['Id']
-        try:
-            sf.listview(sobject,lv_id)
-            responses.append(lv)
-        except RequestException as e:
-            LOGGER.info(f"No /'results/' endpoint found for Sobject: {sobject}, Id: {lv_id}")
+    while start_counter < len(list_views):
+        end_counter = start_counter + concurrency_limit
+        if end_counter >= len(list_views):
+            end_counter = len(list_views)
+
+        chunk = list_views[start_counter:end_counter]
+        chunk_args = [
+            [
+            sf,
+            lv,
+            responses
+            ]
+         for lv in chunk] 
+        run_concurrently(validate_listview, chunk_args)
+        start_counter = end_counter
 
     return responses
 
+def discover_stream(
+    sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references
+):
+    # Skip blacklisted SF objects depending on the api_type in use
+    # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
+    if (
+        sobject_name in sf.get_blacklisted_objects()
+        and sobject_name not in ACTIVITY_STREAMS
+    ) or sobject_name.endswith("ChangeEvent"):
+        return
 
+    sobject_description = sf.describe(sobject_name)
+
+    if sobject_description is None:
+        return
+
+    # Cache customSetting and Tag objects to check for blacklisting after
+    # all objects have been described
+    if sobject_description.get("customSetting"):
+        sf_custom_setting_objects.append(sobject_name)
+    elif sobject_name.endswith("__Tag"):
+        relationship_field = next(
+            (
+                f
+                for f in sobject_description["fields"]
+                if f.get("relationshipName") == "Item"
+            ),
+            None,
+        )
+        if relationship_field:
+            # Map {"Object":"Object__Tag"}
+            object_to_tag_references[
+                relationship_field["referenceTo"][0]
+            ] = sobject_name
+
+    fields = sobject_description["fields"]
+    replication_key = get_replication_key(sobject_name, fields)
+
+    # Salesforce Objects are skipped when they do not have an Id field
+    if not [f["name"] for f in fields if f["name"] == "Id"]:
+        LOGGER.info(
+            "Skipping Salesforce Object %s, as it has no Id field", sobject_name
+        )
+        return
+
+    entry = generate_schema(fields, sf, sobject_name, replication_key, CONFIG)
+    entries.append(entry)
+
+
+def run_concurrently(fn, fn_args_list):
+    all_tasks = []
+
+    # This function is used to garantee the right other of returns.
+    # It saves the index of the `fn_args` used to call `fn`.
+    def fn_with_index(index, *fn_args):
+        result = fn(*fn_args)
+        return (index, result)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        for (index, fn_args) in enumerate(fn_args_list):
+            all_tasks.append(executor.submit(fn_with_index, *[index, *fn_args]))
+
+    results = []
+
+    for future in as_completed(all_tasks):
+        (index, result) = future.result()
+        # Insert the result in the right index of the list
+        results.insert(index, result)
+
+    return results
 
 def run_custom_query(sf, query):
     headers = sf._get_standard_headers()
@@ -323,7 +464,7 @@ def do_discover(sf, custom_tables=list()):
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 
-    objects_to_discover = {o['name'] for o in global_description['sobjects']}
+    objects_to_discover = {o["name"] for o in global_description["sobjects"]}
 
     sf_custom_setting_objects = []
     object_to_tag_references = {}
@@ -332,48 +473,33 @@ def do_discover(sf, custom_tables=list()):
     entries = []
 
     # Check if the user has BULK API enabled
-    if sf.api_type == 'BULK' and not Bulk(sf).has_permissions():
-        raise TapSalesforceBulkAPIDisabledException('This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code')
+    if sf.api_type == "BULK" and not Bulk(sf).has_permissions():
+        raise TapSalesforceBulkAPIDisabledException(
+            'This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code'
+        )
 
-    for sobject_name in sorted(objects_to_discover):
-        # Skip blacklisted SF objects depending on the api_type in use
-        # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
-        if (sobject_name in sf.get_blacklisted_objects() and sobject_name not in ACTIVITY_STREAMS) \
-           or sobject_name.endswith("ChangeEvent"):
-            continue
+    objects_list = sorted(objects_to_discover)
+    start_counter = 0
+    concurrency_limit = 25
 
-        sobject_description = sf.describe(sobject_name)
+    while start_counter < len(objects_list):
+        end_counter = start_counter + concurrency_limit
+        if end_counter >= len(objects_list):
+            end_counter = len(objects_list)
 
-        if sobject_description is None:
-            continue
-
-        fields = sobject_description['fields']
-
-        # Cache customSetting and Tag objects to check for blacklisting after
-        # all objects have been described
-        if sobject_description.get("customSetting"):
-            sf_custom_setting_objects.append(sobject_name)
-        elif sobject_name.endswith("__Tag"):
-            relationship_field = next(
-                (f for f in fields if f.get("relationshipName") == "Item"),
-                None)
-            if relationship_field:
-                # Map {"Object":"Object__Tag"}
-                object_to_tag_references[relationship_field["referenceTo"]
-                                         [0]] = sobject_name
-
-        replication_key = get_replication_key(sobject_name, fields)
-
-        # Salesforce Objects are skipped when they do not have an Id field
-        if not [f["name"] for f in fields if f["name"]=="Id"]:
-            LOGGER.info(
-                "Skipping Salesforce Object %s, as it has no Id field",
-                sobject_name)
-            continue
-
-        entry = generate_schema(fields, sf, sobject_name, replication_key, sobject_description)
-        entries.append(entry)
-
+        chunk = objects_list[start_counter:end_counter]
+        chunk_args = [
+            [
+                sf,
+                sobject_name,
+                entries,
+                sf_custom_setting_objects,
+                object_to_tag_references,
+            ]
+            for sobject_name in chunk]
+        run_concurrently(discover_stream, chunk_args)
+        start_counter = end_counter
+    
     # Handle ListViews
     views = get_views_list(sf)
 
@@ -410,26 +536,30 @@ def do_discover(sf, custom_tables=list()):
     if sf.list_reports is True:
         reports = get_reports_list(sf)
         if reports:
-            if sf.discover_report_fields:
-                for report in reports:
-                    report_metadata = sf.describe_report(report["Id"])
-                    if report_metadata:
-                        report_name = report["DeveloperName"]
-                        fields = report_metadata.get("reportExtendedMetadata",{}).get("detailColumnInfo")
-                        if not fields: # check how is the json response for these catalogs
-                            LOGGER.info(f"No columns found for report {report_name}, not adding to catalog")
-                            continue
-                        # build schema from fields
-                        report_stream = generate_report_schema(fields, report)
-                        entries.append(report_stream)
+            start_counter = 0
+            concurrency_limit = 25
 
-            else:
-                mdata = metadata.new()
-                properties = {}
-                for report in reports:
-                    field_name = f"Report_{report['DeveloperName']}"
-                    properties[field_name] = dict(type=["null", "object", "string"])
-
+            valid_reports = []
+            # Cull invalid reports
+            while start_counter < len(reports):
+                end_counter = start_counter + concurrency_limit
+                if end_counter >= len(reports):
+                    end_counter = len(reports)
+                
+                chunk = reports[start_counter:end_counter]
+                chunk_args = [
+                    [
+                        sf,
+                        report,
+                        valid_reports
+                    ]
+                    for report in chunk]
+                run_concurrently(validate_report, chunk_args)
+                start_counter = end_counter
+            
+            for report in valid_reports:
+                field_name = f"Report_{report['DeveloperName']}"
+                properties[field_name] = dict(type=["null", "object", "string"]) 
                 mdata = metadata.write(
                     mdata,
                     (),
@@ -626,8 +756,8 @@ def do_sync(sf, catalog, state, config=None):
                                               catalog_entry['tap_stream_id'],
                                               'version',
                                               stream_version)
-            counter = sync_stream(sf, catalog_entry, state, input_state, catalog, config)
-            LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter.value)
+            counter_value = sync_stream(sf, catalog_entry, state, input_state, catalog,config)
+            LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
     state["current_stream"] = None
     singer.write_state(state)
@@ -651,12 +781,11 @@ def main_impl():
             quota_percent_total=CONFIG.get('quota_percent_total'),
             quota_percent_per_run=CONFIG.get('quota_percent_per_run'),
             is_sandbox=is_sandbox,
+            select_fields_by_default=CONFIG.get('select_fields_by_default'),
             default_start_date=CONFIG.get('start_date'),
             api_type=CONFIG.get('api_type'),
             list_reports=CONFIG.get('list_reports'),
-            discover_report_fields=CONFIG.get('discover_report_fields'),
-            report_metadata=CONFIG.get('report_metadata'),
-            list_views=CONFIG.get('list_views'),
+            list_views=CONFIG.get('list_views'),            # config 
             api_version=CONFIG.get('api_version')
             )
         sf.login()
@@ -720,6 +849,7 @@ def create_report_stream(report_name):
 
         mdata = metadata.write(mdata, (), 'table-key-properties', [])
         mdata = metadata.write(mdata, (), 'selected', True)
+        mdata = metadata.write(mdata, (), 'is-custom-report', True)
 
         schema = {
             'type': 'object',

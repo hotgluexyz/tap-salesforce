@@ -6,9 +6,8 @@ from singer import Transformer, metadata, metrics
 from requests.exceptions import RequestException
 from tap_salesforce.salesforce.bulk import Bulk
 import base64
-from openpyxl import load_workbook
 from io import BytesIO
-
+from openpyxl import load_workbook
 LOGGER = singer.get_logger()
 
 BLACKLISTED_FIELDS = set(['attributes'])
@@ -104,6 +103,8 @@ def resume_syncing_bulk_query(sf, catalog_entry, job_id, state, counter):
 def sync_stream(sf, catalog_entry, state, input_state, catalog, config=None):
     stream = catalog_entry['stream']
 
+    counter_value = 0
+
     with metrics.record_counter(stream) as counter:
         try:
             sync_records(sf, catalog_entry, state, input_state, counter, catalog, config)
@@ -115,21 +116,24 @@ def sync_stream(sf, catalog_entry, state, input_state, catalog, config=None):
             raise Exception("Error syncing {}: {}".format(
                 stream, ex)) from ex
 
-        return counter
+        counter_value = counter.value
 
+    return counter_value
 
 def get_selected_streams(catalog):
-    selected = []
+    selected = set()
     for stream in catalog["streams"]:
-        if stream["stream"].startswith("Report_"):
-            breadcrumb = next(s for s in stream["metadata"] if s.get("breadcrumb")==())
-        else:
-            breadcrumb = next(s for s in stream["metadata"] if s.get("breadcrumb")==[])     
+        breadcrumb = next(
+            (s for s in stream["metadata"] 
+             if (s.get("breadcrumb")==() or s.get("breadcrumb")==[])),
+             None)
+        if not breadcrumb:
+            raise Exception(f"No breadcrumb found for stream {stream['stream']}. Catalog is likely malformed.")
         
         metadata = breadcrumb.get("metadata")
         if metadata:
             if metadata.get("selected"):
-                selected.append(stream["stream"])
+                selected.add(stream["stream"])
                 
     return selected
 
@@ -205,7 +209,369 @@ def handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state
                 version=lv_stream_version,
                 time_extracted=start_time))
 
-def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config=None):
+def get_campaign_memberships(sf, campaign_ids, stream):
+    """
+    Fetches campaign memberships for Contact or Lead records.
+    
+    Args:
+        sf: Salesforce client instance
+        campaign_ids: List of campaign IDs to fetch memberships for
+        stream: Either 'Contact' or 'Lead'
+        
+    Returns:
+        Dictionary mapping Contact/Lead IDs to lists of campaign IDs they belong to
+    """
+    campaign_memberships = {}
+    
+    try:
+        campaign_ids_str = "'" + "','".join(campaign_ids) + "'"
+        headers = sf._get_standard_headers()
+        endpoint = "queryAll"
+        id_field = "ContactId" if stream == "Contact" else "LeadId"
+        
+        # Query to get all campaign memberships
+        membership_query = f"SELECT CampaignId, {id_field} FROM CampaignMember WHERE CampaignId IN ({campaign_ids_str}) AND {id_field} != null"
+        membership_url = sf.data_url.format(sf.instance_url, endpoint)
+        params = {'q': membership_query}
+        
+        # Execute query to get campaign memberships
+        response = sf._make_request('GET', membership_url, headers=headers, params=params)
+        records = response.json().get('records', [])
+        
+        # Process the records and build a membership map
+        for record in records:
+            entity_id = record[id_field]
+            campaign_id = record['CampaignId']
+            
+            if entity_id not in campaign_memberships:
+                campaign_memberships[entity_id] = []
+            
+            campaign_memberships[entity_id].append(campaign_id)
+        
+        # Handle pagination if there are more results
+        next_records_url = response.json().get('nextRecordsUrl')
+        while next_records_url:
+            paginated_url = sf.instance_url + next_records_url
+            response = sf._make_request('GET', paginated_url, headers=headers)
+            records = response.json().get('records', [])
+            
+            for record in records:
+                entity_id = record[id_field]
+                campaign_id = record['CampaignId']
+                
+                if entity_id not in campaign_memberships:
+                    campaign_memberships[entity_id] = []
+                
+                campaign_memberships[entity_id].append(campaign_id)
+            
+            next_records_url = response.json().get('nextRecordsUrl')
+        
+        LOGGER.info(f"Found {len(campaign_memberships)} {stream} records with campaign memberships")
+    except Exception as e:
+        LOGGER.error(f"Error retrieving campaign memberships: {str(e)}")
+        campaign_memberships = {}
+        
+    return campaign_memberships
+
+def get_report_record_ids_from_xlsx(sf, report_ids, stream):
+    try:
+        headers = sf._get_standard_headers()
+        record_ids = set()
+        
+        for report_id in report_ids:
+            try:
+                endpoint = f"analytics/reports/{report_id}"
+                url = sf.data_url.format(sf.instance_url, endpoint)
+                headers["Accept"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                headers.pop("Content-Type", None)
+                params = {"includeDetails": "true"}
+                resp = sf._make_request("GET", url, headers=headers, params=params)
+
+                # read the excel file by row, process and export the output
+                excel_file = BytesIO(resp.content)
+                workbook = load_workbook(excel_file)
+                sheet = workbook.active
+                headers = None
+                
+                # Save the excel file
+                # with open("report.xlsx", "wb") as f:
+                #     f.write(resp.content)
+
+                header_row_found = False
+                if stream == "Contact":
+                    target_field = "Contact ID"
+                    id_prefix = "003"
+                elif stream == "Lead":
+                    target_field = "Lead ID"
+                    id_prefix = "00Q"
+                else:
+                    raise ValueError(f"Invalid stream: {stream}")
+
+                target_field_idx = None
+
+                for idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+                    if target_field in row:
+                        header_row_found = True
+                        target_field_idx = row.index(target_field)
+                        continue
+                    
+                    if header_row_found and row[target_field_idx] and isinstance(row[target_field_idx], str) and row[target_field_idx].startswith(id_prefix):
+                        record_ids.add(row[target_field_idx])
+
+                LOGGER.info(f"Found {len(record_ids)} {stream} IDs from report {report_id}")
+
+            except Exception as e:
+                raise Exception(f"Error retrieving report {report_id}: {str(e)}")
+                
+    except Exception as e:
+        raise Exception(f"Error retrieving report data: {str(e)}")
+
+    return record_ids
+
+def get_report_record_ids(sf, report_ids, stream):
+    """
+    Executes Salesforce reports and extracts record IDs for filtering.
+    
+    Args:
+        sf: Salesforce client instance
+        report_ids: List of report IDs to execute
+        stream: Either 'Contact' or 'Lead'
+        
+    Returns:
+        Set of record IDs found in the reports
+    """
+    record_ids = set()
+    
+    try:
+        headers = sf._get_standard_headers()
+        
+        for report_id in report_ids:
+            try:
+                endpoint = f"analytics/reports/{report_id}"
+                url = sf.data_url.format(sf.instance_url, endpoint)
+                params = {'includeDetails': 'true'}
+                
+                LOGGER.info(f"Executing report {report_id} for {stream} filtering")
+                response = sf._make_request('GET', url, headers=headers, params=params)
+                report_data = response.json()
+                
+                fact_map = report_data.get('factMap', {})
+                
+                # Handle different report types
+                if 'T!T' in fact_map and 'rows' in fact_map['T!T'] and fact_map['T!T']["rows"]:
+                    # Non-grouped reports
+                    rows = fact_map['T!T']['rows']
+                    record_ids.update(_extract_ids_from_rows(rows, stream))
+                else:
+                    # Grouped reports - need to traverse the structure
+                    for key, section in fact_map.items():
+                        if isinstance(section, dict) and 'rows' in section:
+                            rows = section['rows']
+                            record_ids.update(_extract_ids_from_rows(rows, stream))
+                
+                LOGGER.info(f"Found {len(record_ids)} {stream} IDs from report {report_id}")
+                
+            except Exception as e:
+                LOGGER.warning(f"Error executing report {report_id}: {str(e)}")
+                continue
+                
+    except Exception as e:
+        LOGGER.error(f"Error retrieving report data: {str(e)}")
+        
+    return record_ids
+
+def _extract_ids_from_rows(rows, stream):
+    """
+    Helper function to extract record IDs from report rows.
+    Looks for Contact or Lead IDs in the data cells.
+    """
+    ids = set()
+    
+    for row in rows:
+        data_cells = row.get('dataCells', [])
+        for cell in data_cells:
+            value = cell.get('value') or cell.get('label', '')
+            # Check if this looks like a Salesforce ID for the target object
+            if (isinstance(value, str) and len(value) in [15, 18] and 
+                ((stream == 'Contact' and value.startswith('003')) or
+                 (stream == 'Lead' and value.startswith('00Q')))):
+                ids.add(value)
+    
+    return ids
+
+# Update the sync_filtered_accounts function around line 408-415
+
+def _chunk_list(lst, chunk_size):
+    """Split a list into chunks of specified size."""
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i:i + chunk_size]
+
+def _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, chunk_size=500):
+    """Execute queries in chunks when there are too many record IDs."""
+    record_id_list = list(record_ids)
+    all_results = []
+    
+    for chunk in _chunk_list(record_id_list, chunk_size):
+        quoted_ids = "'" + "','".join(chunk) + "'"
+        chunked_query = base_query.format(quoted_ids=quoted_ids)
+        
+        LOGGER.info(f"Executing chunked query with {len(chunk)} record IDs")
+        query_response = sf.query(catalog_entry, state, query_override=chunked_query)
+        
+        # Collect results from this chunk
+        chunk_results = list(query_response)
+        all_results.extend(chunk_results)
+        
+        LOGGER.info(f"Retrieved {len(chunk_results)} records from chunk")
+    
+    LOGGER.info(f"Total records retrieved from all chunks: {len(all_results)}")
+    return iter(all_results)
+
+def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config):
+    if not any([config.get("list_ids"), config.get("campaign_ids"), config.get("report_ids")]):
+        raise ValueError("At least one filtering method (list_ids, campaign_ids, or report_ids) must be specified")
+
+    record_ids = set()
+    list_view_memberships = {}
+    campaign_memberships = {}
+    has_record_filters = config.get("list_ids") or config.get("report_ids")
+    has_campaign_filters = config.get("campaign_ids")
+    combined_query = has_record_filters and has_campaign_filters
+    query = ""
+    
+    campaign_member_where_clause = lambda entity_name, campaign_ids_str, start_date_str: f"""
+        Id IN (
+            SELECT {entity_name}Id
+            FROM CampaignMember
+            WHERE CampaignId IN ({campaign_ids_str})
+            AND (SystemModstamp > {start_date_str} OR {entity_name}.SystemModstamp > {start_date_str})
+            AND {entity_name}Id != null
+        )
+    """
+    stream_has_lists = False
+    if config.get("list_ids"):
+        list_ids = config['list_ids']
+        quoted_list_ids = "'" + "','".join(list_ids) + "'"
+        query = f"""
+            SELECT Id FROM ListView WHERE Id IN ({quoted_list_ids})
+            AND SobjectType = '{stream}'
+        """
+        query_response = sf.query(catalog_entry, state, query_override=query)
+
+        for rec in query_response:
+            stream_has_lists = True
+            list_id = rec["Id"]
+            described_list_view = sf.listview(stream, list_id)
+            entity_query = described_list_view["query"]
+            entity_query_response = sf.query(catalog_entry, state, query_override=entity_query)
+
+            for entity_rec in entity_query_response:
+                entity_id = entity_rec["Id"]
+                record_ids.add(entity_id)
+                
+                # Track which list_ids this record belongs to
+                if entity_id not in list_view_memberships:
+                    list_view_memberships[entity_id] = []
+                list_view_memberships[entity_id].append(list_id)
+        
+            LOGGER.info(f"ListView: {list_id} for {stream}")
+        
+        LOGGER.info(f"Found {len(record_ids)} {stream} records in the specified list views")
+
+    if config.get("report_ids"):
+        report_ids = config["report_ids"]
+        LOGGER.info(f"Filtering {stream} by report results for report IDs: {report_ids}")
+        
+        # report_record_ids = get_report_record_ids(sf, report_ids, stream)
+        report_record_ids = get_report_record_ids_from_xlsx(sf, report_ids, stream)
+        record_ids.update(report_record_ids)
+
+    if config.get("campaign_ids"):
+        campaign_ids = config['campaign_ids']
+        campaign_ids_str = "'" + "','".join(campaign_ids) + "'"
+        LOGGER.info(f"Filtering {stream} by campaign membership for campaign IDs: {campaign_ids_str}")
+        
+        campaign_memberships = get_campaign_memberships(sf, campaign_ids, stream)
+    
+    start_date_str = sf.get_start_date(state, catalog_entry)
+    selected_properties = sf._get_selected_properties(catalog_entry)
+    
+    if 'ListViewMemberships' in selected_properties:
+        selected_properties.remove('ListViewMemberships')
+        
+    if 'CampaignMemberships' in selected_properties:
+        selected_properties.remove('CampaignMemberships')
+    
+    # Define chunk size for large record sets to avoid header size limits
+    CHUNK_SIZE = 100
+    
+    if combined_query and record_ids:
+        # For combined queries, we need to handle chunking differently
+        base_query = f"""
+            SELECT {','.join(selected_properties)}
+            FROM {stream}
+            WHERE (Id IN ({{quoted_ids}}))
+            OR {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
+        """
+        
+        if replication_key:
+            base_query += f" ORDER BY {replication_key} ASC"
+            
+        query_response = _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, CHUNK_SIZE)
+    elif record_ids:  # Handle any record filtering (list_ids or report_ids)
+        base_query = f"""
+            SELECT {','.join(selected_properties)}
+            FROM {stream}
+            WHERE Id IN ({{quoted_ids}}) AND SystemModstamp > {start_date_str}
+        """
+        
+        if replication_key:
+            base_query += f" ORDER BY {replication_key} ASC"
+            
+        query_response = _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, CHUNK_SIZE)
+
+    elif has_record_filters and not record_ids:
+        LOGGER.info(f"No {stream} records found in the specified list views or reports")
+        return iter([]), campaign_memberships, list_view_memberships
+    elif config.get("campaign_ids"):
+        entity_name = stream  # "Contact" or "Lead"
+        
+        query = f"""
+            SELECT {','.join(selected_properties)}
+            FROM {stream}
+            WHERE {campaign_member_where_clause(entity_name, campaign_ids_str, start_date_str).strip()}
+        """
+        
+        if replication_key:
+            query += f" ORDER BY {replication_key} ASC"
+            
+        LOGGER.info(f"Generated campaign filter query: {query}")
+        query_response = sf.query(catalog_entry, state, query_override=query)
+    else:
+        query = f"SELECT {','.join(selected_properties)} FROM {stream} WHERE SystemModstamp > {start_date_str}"
+        
+        if replication_key:
+            query += f" ORDER BY {replication_key} ASC"
+            
+        LOGGER.info(f"Generated default query: {query}")
+        query_response = sf.query(catalog_entry, state, query_override=query)
+
+    return query_response, campaign_memberships, list_view_memberships
+
+def is_custom_report(stream):
+    breadcrumb = next(
+        (s for s in stream["metadata"] 
+        if (s.get("breadcrumb")==() or s.get("breadcrumb")==[])),
+        None)
+    if not breadcrumb:
+        return False
+    metadata = breadcrumb.get("metadata")
+    if metadata:
+        if metadata.get("is-custom-report"):
+            return True
+    return False
+
+def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):
     download_files = False
     if "download_files" in config:
         if config['download_files']==True:
@@ -234,6 +600,8 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config
         )
 
     start_time = singer_utils.now()
+    campaign_memberships = {}
+    list_view_memberships = {}
 
     LOGGER.info('Syncing Salesforce data for stream %s', stream)
     records_post = []
@@ -261,7 +629,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config
             replication_key,
             singer_utils.strftime(chunked_bookmark))
 
-    if catalog_entry["stream"].startswith("Report_"):
+    if is_custom_report(catalog_entry):
         report_name = catalog_entry["stream"].split("Report_", 1)[1]
         headers = sf._get_standard_headers()
 
@@ -377,7 +745,9 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config
                     LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
 
     else:
-        if catalog_entry["stream"] in ACTIVITY_STREAMS:
+        if stream in ["Contact", "Lead"] and ("list_ids" in config or "campaign_ids" in config or "report_ids" in config): 
+            query_response, campaign_memberships, list_view_memberships = sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config)
+        elif catalog_entry["stream"] in ACTIVITY_STREAMS:
             start_date_str = sf.get_start_date(state, catalog_entry)
             start_date = singer_utils.strptime_with_tz(start_date_str)
             start_date = singer_utils.strftime(start_date)
@@ -444,11 +814,25 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config
                 query_override=query_override,
             )
 
+        selected = (
+            get_selected_streams(catalog)
+            if stream == "ListView"
+            else set()
+        )
+
         for rec in query_response:
             counter.increment()
             with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
                 rec = transformer.transform(rec, schema)
             rec = fix_record_anytype(rec, schema)
+
+            if stream in ["Contact", "Lead"]:
+                if config.get("campaign_ids"):
+                    rec['CampaignMemberships'] = campaign_memberships.get(rec['Id'],[])
+                
+                if config.get("list_ids"):
+                    rec['ListViewMemberships'] = list_view_memberships.get(rec['Id'],[])
+
             if stream=='ContentVersion':
                 if "IsLatest" in rec:
                     if rec['IsLatest']==True and download_files==True:
@@ -483,7 +867,6 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog, config
                     rec[replication_key])
                 singer.write_state(state)
 
-            selected = get_selected_streams(catalog)
             if stream == "ListView" and rec.get("SobjectType") in selected and rec.get("Id") is not None:
                 # Handle listview
                 try:

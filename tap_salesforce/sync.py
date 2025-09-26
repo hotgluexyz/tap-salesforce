@@ -571,6 +571,45 @@ def is_custom_report(stream):
             return True
     return False
 
+def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_version, start_time):
+    report_name = catalog_entry["stream"].split("Report_", 1)[1]
+    report_id = catalog_entry["stream_meta"]["Id"]
+    endpoint = f"analytics/reports/{report_id}"
+    headers = sf._get_standard_headers()
+    url = sf.data_url.format(sf.instance_url, endpoint)
+    # add headers to get report as xlsx
+    xlsx_headers = {"Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+    headers.update(xlsx_headers)
+    params = {"export": 1, "enc": "UTF-8", "xf": "xlsx", "data":2, "includeDetails": True}
+    # check if reportMetadata is in config for the current report
+
+    response = sf._make_request('POST', url, headers=headers, params=params)
+    # read the excel file by row, process and export the output
+    # openpyxl maintains typing
+    excel_file = BytesIO(response.content)
+    workbook = load_workbook(excel_file)
+    sheet = workbook.active
+    headers = None
+    first_field = next(iter(catalog_entry["schema"]["properties"]), None)
+    for row in sheet.iter_rows(values_only=True):
+        # look for the header row
+        if row[1] == first_field:
+            headers = row
+            continue
+        if headers:
+            if row[1].lower() == "total":
+                # end of data
+                return
+            processed_row = {headers[i]: row[i] for i in range(len(headers)) if headers[i] is not None}
+            singer.write_message(
+                singer.RecordMessage(
+                    stream=(
+                        stream_alias or stream),
+                    record=processed_row,
+                    version=stream_version,
+                    time_extracted=start_time))
+
+
 def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):
     download_files = False
     if "download_files" in config:
@@ -618,41 +657,44 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
             singer_utils.strftime(chunked_bookmark))
 
     if is_custom_report(catalog_entry):
-        report_name = catalog_entry["stream"].split("Report_", 1)[1]
-        
-        reports = []
-        done = False
-        headers = sf._get_standard_headers()
-        endpoint = "queryAll"
-        params = {'q': 'SELECT Id,DeveloperName FROM Report'}
-        url = sf.data_url.format(sf.instance_url, endpoint)
+        if config.get("discover_report_fields", False):
+            sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_version, start_time)
+        else:
+            report_name = catalog_entry["stream"].split("Report_", 1)[1]
+            
+            reports = []
+            done = False
+            headers = sf._get_standard_headers()
+            endpoint = "queryAll"
+            params = {'q': 'SELECT Id,DeveloperName FROM Report'}
+            url = sf.data_url.format(sf.instance_url, endpoint)
 
-        while not done:
-            response = sf._make_request('GET', url, headers=headers, params=params)
-            response_json = response.json()
-            done = response_json.get("done")
-            reports.extend(response_json.get("records", []))
-            if not done:
-                url = sf.instance_url+response_json.get("nextRecordsUrl")
+            while not done:
+                response = sf._make_request('GET', url, headers=headers, params=params)
+                response_json = response.json()
+                done = response_json.get("done")
+                reports.extend(response_json.get("records", []))
+                if not done:
+                    url = sf.instance_url+response_json.get("nextRecordsUrl")
 
-        report = [r for r in reports if report_name==r["DeveloperName"]][0]
-        report_id = report["Id"]
+            report = [r for r in reports if report_name==r["DeveloperName"]][0]
+            report_id = report["Id"]
 
-        endpoint = f"analytics/reports/{report_id}"
-        url = sf.data_url.format(sf.instance_url, endpoint)
-        response = sf._make_request('GET', url, headers=headers)
+            endpoint = f"analytics/reports/{report_id}"
+            url = sf.data_url.format(sf.instance_url, endpoint)
+            response = sf._make_request('GET', url, headers=headers)
 
-        with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
-            rec = transformer.transform(response.json(), schema)
-        rec = fix_record_anytype(rec, schema)
-        stream = stream.replace("/","_")
-        singer.write_message(
-            singer.RecordMessage(
-                stream=(
-                    stream_alias or stream),
-                record=rec,
-                version=stream_version,
-                time_extracted=start_time))
+            with Transformer(pre_hook=transform_bulk_data_hook) as transformer:
+                rec = transformer.transform(response.json(), schema)
+            rec = fix_record_anytype(rec, schema)
+            stream = stream.replace("/","_")
+            singer.write_message(
+                singer.RecordMessage(
+                    stream=(
+                        stream_alias or stream),
+                    record=rec,
+                    version=stream_version,
+                    time_extracted=start_time))
 
     elif "ListViews" == catalog_entry["stream"]:
         headers = sf._get_standard_headers()

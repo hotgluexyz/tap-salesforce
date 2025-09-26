@@ -119,17 +119,19 @@ def sync_stream(sf, catalog_entry, state, input_state, catalog, config=None):
 
 
 def get_selected_streams(catalog):
-    selected = []
+    selected = set()
     for stream in catalog["streams"]:
-        if stream["stream"].startswith("Report_"):
-            breadcrumb = next(s for s in stream["metadata"] if s.get("breadcrumb")==())
-        else:
-            breadcrumb = next(s for s in stream["metadata"] if s.get("breadcrumb")==[])     
+        breadcrumb = next(
+            (s for s in stream["metadata"] 
+             if (s.get("breadcrumb")==() or s.get("breadcrumb")==[])),
+             None)
+        if not breadcrumb:
+            raise Exception(f"No breadcrumb found for stream {stream['stream']}. Catalog is likely malformed.")
         
         metadata = breadcrumb.get("metadata")
         if metadata:
             if metadata.get("selected"):
-                selected.append(stream["stream"])
+                selected.add(stream["stream"])
                 
     return selected
 

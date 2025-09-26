@@ -138,11 +138,16 @@ def log_backoff_attempt(details):
     LOGGER.info("ConnectionFailure detected, triggering backoff: %d try", details.get("tries"))
 
 
-def field_to_property_schema(field, mdata): # pylint:disable=too-many-branches
+def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=too-many-branches
     property_schema = {}
 
-    field_name = field['name']
-    sf_type = field['type']
+    if is_report:
+        field_name = field['label']
+        sf_type = field['dataType']
+    else:
+        field_name = field['name']
+        sf_type = field['type']
+
 
     if sf_type in STRING_TYPES:
         property_schema['type'] = "string"

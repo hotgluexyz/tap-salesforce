@@ -337,7 +337,7 @@ def discover_stream(
 
     sobject_description = sf.describe(sobject_name)
 
-    if sobject_description is None:
+    if sobject_description is None or not sobject_description.get("retrieveable", False):
         return
 
     # Cache customSetting and Tag objects to check for blacklisting after

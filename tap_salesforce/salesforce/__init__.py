@@ -109,6 +109,8 @@ QUERY_RESTRICTED_SALESFORCE_OBJECTS = set(['Announcement',
                                            'FlexQueueItem',
                                            'FlowRecord',
                                            'ServiceAppointmentStatus',
+                                           'WorkOrderStatus',
+                                           'WorkOrderLineItemStatus',
                                            'NetworkUserHistoryRecent'])
 
 # The following objects are not supported by the query method being used.

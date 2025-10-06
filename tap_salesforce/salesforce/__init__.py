@@ -113,6 +113,7 @@ QUERY_RESTRICTED_SALESFORCE_OBJECTS = set(['Announcement',
                                            'WorkOrderLineItemStatus',
                                            'Problem',
                                            'ActivityFieldHistory',
+                                           'FieldSecurityClassification',
                                            'NetworkUserHistoryRecent'])
 
 # The following objects are not supported by the query method being used.

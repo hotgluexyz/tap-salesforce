@@ -100,7 +100,7 @@ def resume_syncing_bulk_query(sf, catalog_entry, job_id, state, counter):
 
     return counter
 
-def sync_stream(sf, catalog_entry, state, input_state, catalog,config=None):
+def sync_stream(sf, catalog_entry, state, input_state, catalog,config=None, error_streams=[]):
     stream = catalog_entry['stream']
 
     counter_value = 0
@@ -110,11 +110,13 @@ def sync_stream(sf, catalog_entry, state, input_state, catalog,config=None):
             sync_records(sf, catalog_entry, state, input_state, counter, catalog,config)
             singer.write_state(state)
         except RequestException as ex:
-            raise Exception("Error syncing {}: {} Response: {}".format(
-                stream, ex, ex.response.text)) from ex
+            error_streams.append(f"RequestException: {stream}: Response: {ex.response.text}")
+            # raise Exception("Error syncing {}: {} Response: {}".format(
+            #     stream, ex, ex.response.text)) from ex
         except Exception as ex:
-            raise Exception("Error syncing {}: {}".format(
-                stream, ex)) from ex
+            error_streams.append(f"Exception: {stream}: {ex}")
+            # raise Exception("Error syncing {}: {}".format(
+            #     stream, ex)) from ex
 
         counter_value = counter.value
 

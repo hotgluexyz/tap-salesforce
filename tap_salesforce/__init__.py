@@ -559,7 +559,6 @@ def do_sync(sf, catalog, state,config=None):
     catalog["streams"] = [c for c in catalog["streams"] if c["stream"]!="ListView"]
     catalog["streams"] = list_view + catalog["streams"]
 
-    error_streams = []
     # Sync Streams
     for catalog_entry in catalog["streams"]:
         stream_version = get_stream_version(catalog_entry, state)
@@ -642,13 +641,8 @@ def do_sync(sf, catalog, state,config=None):
                                               catalog_entry['tap_stream_id'],
                                               'version',
                                               stream_version)
-            counter_value = sync_stream(sf, catalog_entry, state, input_state, catalog, config, error_streams)
+            counter_value = sync_stream(sf, catalog_entry, state, input_state, catalog, config)
             LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
-    
-    if error_streams:
-        LOGGER.info("------------------------------------------------------------------------------------------------")
-        LOGGER.info("Error streams: %s", error_streams)
-        LOGGER.info("------------------------------------------------------------------------------------------------")
 
     state["current_stream"] = None
     singer.write_state(state)

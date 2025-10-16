@@ -337,7 +337,7 @@ def discover_stream(
 
     sobject_description = sf.describe(sobject_name)
 
-    if sobject_description is None:
+    if sobject_description is None or not sobject_description.get("retrieveable", False):
         return
 
     # Cache customSetting and Tag objects to check for blacklisting after
@@ -641,7 +641,7 @@ def do_sync(sf, catalog, state,config=None):
                                               catalog_entry['tap_stream_id'],
                                               'version',
                                               stream_version)
-            counter_value = sync_stream(sf, catalog_entry, state, input_state, catalog,config)
+            counter_value = sync_stream(sf, catalog_entry, state, input_state, catalog, config)
             LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
     state["current_stream"] = None

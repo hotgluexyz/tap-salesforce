@@ -84,6 +84,11 @@ UNSUPPORTED_BULK_API_SALESFORCE_OBJECTS = set(['AssetTokenEvent',
                                                'PartnerRole',
                                                'TaskPriority',
                                                'CaseStatus',
+                                               'WorkOrderLineItemStatus',
+                                               'FieldSecurityClassification',
+                                               'OrderStatus',
+                                               'ShiftStatus',
+                                               'WorkStepStatus',
                                                'UndecidedEventRelation'])
 
 # The following objects have certain WHERE clause restrictions so we exclude them.
@@ -107,6 +112,14 @@ QUERY_RESTRICTED_SALESFORCE_OBJECTS = set(['Announcement',
                                            'PicklistValueInfo',
                                            'RelationshipDomain',
                                            'FlexQueueItem',
+                                           'FlowRecord',
+                                           'ServiceAppointmentStatus',
+                                           'WorkOrderStatus',
+                                           'Problem',
+                                           'ActivityFieldHistory',
+                                           'OmniRoutingEventStore',
+                                           'PendingOrderSummary',
+                                           'RecordActionHistory',
                                            'NetworkUserHistoryRecent'])
 
 # The following objects are not supported by the query method being used.

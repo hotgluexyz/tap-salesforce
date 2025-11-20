@@ -507,17 +507,38 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
     
     if combined_query and record_ids:
         # For combined queries, we need to handle chunking differently
-        base_query = f"""
+
+        report_records_query = f"""
             SELECT {','.join(selected_properties)}
             FROM {stream}
-            WHERE (Id IN ({{quoted_ids}}))
-            OR {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
+            WHERE Id IN ({{quoted_ids}})
         """
-        
+
+        campaign_records_query = f"""
+            SELECT {','.join(selected_properties)}
+            FROM {stream}
+            WHERE {campaign_member_where_clause(stream, campaign_ids_str, start_date_str).strip()}
+        """
+
         if replication_key:
-            base_query += f" ORDER BY {replication_key} ASC"
-            
-        query_response = _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, CHUNK_SIZE)
+            report_records_query += f" ORDER BY {replication_key} ASC"
+            campaign_records_query += f" ORDER BY {replication_key} ASC"
+
+        report_records_query_response = _execute_chunked_query(sf, catalog_entry, state, report_records_query, record_ids, CHUNK_SIZE)
+        campaign_records_query_response = sf.query(catalog_entry, state, query_override=campaign_records_query)
+
+        query_response = list(report_records_query_response) + list(campaign_records_query_response)
+
+
+        record_ids = set()
+        new_record_list = []
+        for rec in query_response:
+            if rec["Id"] not in record_ids:
+                record_ids.add(rec["Id"])
+                new_record_list.append(rec)
+
+        query_response = iter(new_record_list)
+        
     elif record_ids:  # Handle any record filtering (list_ids or report_ids)
         base_query = f"""
             SELECT {','.join(selected_properties)}

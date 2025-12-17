@@ -407,13 +407,6 @@ def do_discover(sf):
 
     # For each SF Object describe it, loop its fields and build a schema
     entries = []
-
-    # Check if the user has BULK API enabled
-    if sf.api_type == "BULK" and not Bulk(sf).has_permissions():
-        raise TapSalesforceBulkAPIDisabledException(
-            'This client does not have Bulk API permissions, received "API_DISABLED_FOR_ORG" error code'
-        )
-
     objects_list = sorted(objects_to_discover)
     start_counter = 0
     concurrency_limit = 25
@@ -675,6 +668,11 @@ def main_impl():
             )
         sf.login()
 
+        # if api_type is BULK, check if the Bulk API is enabled and fallback to REST if not
+        if sf.api_type == "BULK" and not Bulk(sf).check_bulk_availability():
+            LOGGER.warning("Configured api_type is BULK but Bulk API is not available for the organization. Falling back to REST")
+            sf.api_type = "REST"
+        
         if args.discover:
             do_discover(sf)
         elif args.properties:

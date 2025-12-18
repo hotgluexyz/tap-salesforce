@@ -668,10 +668,11 @@ def main_impl():
             )
         sf.login()
 
-        # if api_type is BULK, check if the Bulk API is enabled and fallback to REST if not
-        if sf.api_type == "BULK" and not Bulk(sf).check_bulk_availability():
-            LOGGER.warning("Configured api_type is BULK but Bulk API is not available for the organization. Falling back to REST")
-            sf.api_type = "REST"
+        # If api_type is BULK, check if the Bulk API is enabled and fallback to REST if not
+        # Config flag `check_bulk_availability` can be used to skip the check
+        if sf.api_type == "BULK" and CONFIG.get("check_bulk_availability", True) and not Bulk(sf).check_bulk_availability():
+           LOGGER.warning("Configured api_type is BULK but Bulk API is not available for the organization. Falling back to REST")
+           sf.api_type = "REST"
         
         if args.discover:
             do_discover(sf)

@@ -56,4 +56,47 @@ To sync data, select fields in the `properties.json` output and run the tap.
 > tap-salesforce --config config.json --properties properties.json [--state state.json]
 ```
 
+## Syncing Reports
+
+There are three ways to sync reports using this tap:
+
+### 1. Contact and Lead filters
+
+You can add the following to your config.json:
+```json
+"report_ids": ["UQFG134...", "UIF31551..."]
+```
+
+This will filter your leads + contacts streams to only leads and contacts that are in this particular report
+
+### 2. Syncing raw report payloads
+
+You can add the following to your config.json:
+```json
+"list_reports": true
+"report_ids": ["UQFG134...", "UIF31551..."]
+```
+
+During the discover process, the tap will add a stream named `ReportList` where each field is a different report which is queryable. 
+If you pass the `report_ids` field, then only configured reports will be added to the `ReportList` stream.
+
+The selected fields of this stream will each come through as their own stream when running a sync. 
+
+Note that using `list_reports` in this way can significantly slow down the discover process on SF instances with large amounts of reports.
+
+Additionally, SF limits the number of records per report to 2000 when syncing through this method.
+
+### 3. Exporting reports via Excel
+
+If you want to get past the 2k record limit, you can configure:
+```json
+"list_reports": true,
+"discover_report_fields": true,
+"report_ids": ["UQFG134...", "UIF31551..."]
+```
+
+This will:
+1) Add a stream to the catalog for each configured report
+2) Sync the report via an excel import which is slower, but does not have a record count limitation.
+
 Copyright &copy; 2017 Stitch

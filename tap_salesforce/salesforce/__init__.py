@@ -189,6 +189,8 @@ def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=to
     elif sf_type == "time":
         property_schema['type'] = "string"
     elif sf_type in LOOSE_TYPES:
+        # Force string type
+        property_schema['type'] = "string"
         return property_schema, mdata  # No type = all types
     elif sf_type in BINARY_TYPES:
         mdata = metadata.write(mdata, ('properties', field_name), "inclusion", "unsupported")

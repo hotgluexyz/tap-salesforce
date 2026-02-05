@@ -1,0 +1,10 @@
+{
+  "description": "Basic report data with 3 records",
+  "header_row": [null, "Name", "Amount", "Status", "Date"],
+  "data_rows": [
+    [null, "Deal 1", 1000.50, "Open", "2024-01-15"],
+    [null, "Deal 2", 2500.75, "Closed", "2024-01-20"],
+    [null, "Deal 3", 500.00, "Open", "2024-01-25"]
+  ],
+  "include_total": true
+}

@@ -15,6 +15,12 @@ setup(name='tap-salesforce',
           'xmltodict==0.11.0',
           'openpyxl==3.1.3'
       ],
+      extras_require={
+          'dev': [
+              'pytest>=7.0.0',
+              'pre-commit>=2.17.0',
+          ]
+      },
       entry_points='''
           [console_scripts]
           tap-salesforce=tap_salesforce:main

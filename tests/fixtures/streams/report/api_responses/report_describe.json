@@ -1,0 +1,37 @@
+{
+  "reportMetadata": {
+    "id": "00O1234567890ABC",
+    "name": "Test Report",
+    "developerName": "TestReport",
+    "reportType": {
+      "type": "Opportunity"
+    },
+    "detailColumns": [
+      "OPPORTUNITY_NAME",
+      "AMOUNT",
+      "STAGE_NAME",
+      "CLOSE_DATE"
+    ],
+    "aggregates": ["RowCount"]
+  },
+  "reportExtendedMetadata": {
+    "detailColumnInfo": {
+      "OPPORTUNITY_NAME": {
+        "label": "Opportunity Name",
+        "dataType": "string"
+      },
+      "AMOUNT": {
+        "label": "Amount",
+        "dataType": "currency"
+      },
+      "STAGE_NAME": {
+        "label": "Stage",
+        "dataType": "string"
+      },
+      "CLOSE_DATE": {
+        "label": "Close Date",
+        "dataType": "date"
+      }
+    }
+  }
+}

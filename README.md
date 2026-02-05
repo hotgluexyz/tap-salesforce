@@ -118,10 +118,11 @@ pip install -e '.'
 **Important**: After cloning, install pre-commit hooks:
 
 ```bash
-pre-commit install
+pre-commit install                      # Runs tests before commits
+pre-commit install --hook-type pre-push # Runs tests before pushes
 ```
 
-This automatically runs tests before each commit. See [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md) for troubleshooting.
+This automatically runs tests before commits and pushes. See [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md) for troubleshooting.
 
 ### Running Tests
 

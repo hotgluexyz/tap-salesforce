@@ -34,7 +34,7 @@ def create_excel_file():
         
         # Add total row if requested
         if include_total:
-            total_row = [None, "total", None, None][:len(header_row)]
+            total_row = [None, "total"] + [None] * (len(header_row) - 2)
             sheet.append(total_row)
         
         # Save to BytesIO

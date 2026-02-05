@@ -1,0 +1,10 @@
+{
+  "description": "Report data with null values",
+  "header_row": [null, "Name", "Amount", "Status"],
+  "data_rows": [
+    [null, "Deal 1", null, "Open"],
+    [null, "Deal 2", 1500, "Closed"],
+    [null, "Deal 3", 2000, null]
+  ],
+  "include_total": true
+}

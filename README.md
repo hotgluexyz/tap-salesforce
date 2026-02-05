@@ -99,4 +99,55 @@ This will:
 1) Add a stream to the catalog for each configured report
 2) Sync the report via an excel import which is slower, but does not have a record count limitation.
 
+---
+
+## Development
+
+### Setup
+
+Clone the repository and install development dependencies:
+
+```bash
+git clone <repository-url>
+cd tap-salesforce
+pip install -e '.'
+```
+
+### Pre-commit Hooks
+
+**Important**: After cloning, install pre-commit hooks:
+
+```bash
+pre-commit install                      # Runs tests before commits
+pre-commit install --hook-type pre-push # Runs tests before pushes
+```
+
+This automatically runs tests before commits and pushes. See [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md) for troubleshooting.
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_sync_report_via_excel.py
+
+# Run specific test
+pytest tests/test_sync_report_via_excel.py::TestSyncReportViaExcel::test_basic_report_sync
+```
+
+### Test Fixtures
+
+Test fixtures are organized in `tests/fixtures/`:
+- `fixtures/streams/report/` - Report-specific test data
+- `fixtures/streams/products/` - Products-specific test data
+
+See [tests/FIXTURES_GUIDE.md](tests/FIXTURES_GUIDE.md) for details on using and creating fixtures.
+
+---
+
 Copyright &copy; 2017 Stitch

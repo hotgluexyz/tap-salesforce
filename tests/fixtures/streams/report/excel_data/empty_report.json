@@ -1,0 +1,6 @@
+{
+  "description": "Empty report with headers only",
+  "header_row": [null, "Name", "Amount", "Status"],
+  "data_rows": [],
+  "include_total": true
+}

@@ -1,0 +1,39 @@
+{
+  "stream": "Report_TestReport",
+  "tap_stream_id": "Report_TestReport",
+  "stream_meta": {
+    "Id": "00O1234567890ABC",
+    "name": "Test Report",
+    "folder": "Public Reports"
+  },
+  "schema": {
+    "type": "object",
+    "properties": {
+      "Name": {
+        "type": ["null", "string"]
+      },
+      "Amount": {
+        "type": ["null", "number"]
+      },
+      "Status": {
+        "type": ["null", "string"]
+      },
+      "Date": {
+        "type": ["null", "string"]
+      }
+    }
+  },
+  "metadata": [
+    {
+      "breadcrumb": [],
+      "metadata": {
+        "selected": true,
+        "is-custom-report": true,
+        "forced-replication-method": {
+          "replication-method": "FULL_TABLE"
+        },
+        "table-key-properties": []
+      }
+    }
+  ]
+}

@@ -760,7 +760,7 @@ def prepare_reports_streams(catalog):
         report_stream = {}
         if stream["stream"] == "ReportList":
             for meta in stream["metadata"][:-1]:
-                if meta["metadata"].get("selected"):
+                if meta["metadata"].get("selected") is True:
                     report_name = meta["breadcrumb"][1]
                     report_stream = create_report_stream(report_name)
                     streams.append(report_stream)

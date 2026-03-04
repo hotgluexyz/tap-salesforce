@@ -632,7 +632,7 @@ def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_versio
 def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):  # noqa: C901
     download_files = False
     if "download_files" in config:
-        if isinstance(config['download_files'], bool) and config['download_files']:
+        if config['download_files'] is True:
             download_files = True
     chunked_bookmark = singer_utils.strptime_with_tz(sf.get_start_date(state, catalog_entry))
     stream = catalog_entry['stream']
@@ -813,7 +813,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
 
             if stream=='ContentVersion':
                 if "IsLatest" in rec:
-                    if rec['IsLatest'] and download_files:
+                    if rec['IsLatest'] is True and download_files is True:
                         rec['TextPreview'] = base64.b64encode(get_content_document_file(sf,rec['Id'])).decode('utf-8')
             singer.write_message(
                 singer.RecordMessage(

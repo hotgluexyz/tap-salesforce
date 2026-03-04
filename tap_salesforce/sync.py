@@ -427,7 +427,7 @@ def _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, chu
     LOGGER.info(f"Total records retrieved from all chunks: {len(all_results)}")
     return iter(all_results)
 
-def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config):
+def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config):  # noqa: C901
     if not any([config.get("list_ids"), config.get("campaign_ids"), config.get("report_ids")]):
         raise ValueError("At least one filtering method (list_ids, campaign_ids, or report_ids) must be specified")
 
@@ -448,7 +448,6 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
             AND {entity_name}Id != null
         )
     """
-    stream_has_lists = False
     if config.get("list_ids"):
         list_ids = config['list_ids']
         quoted_list_ids = "'" + "','".join(list_ids) + "'"
@@ -459,7 +458,6 @@ def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, co
         query_response = sf.query(catalog_entry, state, query_override=query)
 
         for rec in query_response:
-            stream_has_lists = True
             list_id = rec["Id"]
             described_list_view = sf.listview(stream, list_id)
             entity_query = described_list_view["query"]
@@ -593,7 +591,7 @@ def is_custom_report(stream):
     return False
 
 def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_version, start_time):
-    report_name = catalog_entry["stream"].split("Report_", 1)[1]
+    _ = catalog_entry["stream"].split("Report_", 1)[1]
     report_id = catalog_entry["stream_meta"]["Id"]
     endpoint = f"analytics/reports/{report_id}"
     headers = sf._get_standard_headers()
@@ -631,10 +629,10 @@ def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_versio
                     time_extracted=start_time))
 
 
-def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):
+def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=None):  # noqa: C901
     download_files = False
     if "download_files" in config:
-        if config['download_files']==True:
+        if isinstance(config['download_files'], bool) and config['download_files']:
             download_files = True
     chunked_bookmark = singer_utils.strptime_with_tz(sf.get_start_date(state, catalog_entry))
     stream = catalog_entry['stream']
@@ -652,7 +650,6 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
     list_view_memberships = {}
 
     LOGGER.info('Syncing Salesforce data for stream %s', stream)
-    records_post = []
     
     if "/" in state["current_stream"]:
         # get current name
@@ -721,7 +718,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
         headers = sf._get_standard_headers()
         endpoint = "queryAll"
 
-        params = {'q': f'SELECT Name,Id,SobjectType,DeveloperName FROM ListView'}
+        params = {'q': 'SELECT Name,Id,SobjectType,DeveloperName FROM ListView'}
         url = sf.data_url.format(sf.instance_url, endpoint)
         response = sf._make_request('GET', url, headers=headers, params=params)
     
@@ -750,7 +747,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                 lv_catalog_entry = lv_catalog[0].copy()
                 try:
                     handle_ListView(sf,lv_id,sobject,lv_name,lv_catalog_entry,state,input_state,start_time)
-                except RequestException as e:
+                except RequestException:
                     LOGGER.warning(f"No existing /'results/' endpoint was found for SobjectType:{sobject}, Id:{lv_id}")
 
     else:
@@ -816,7 +813,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
 
             if stream=='ContentVersion':
                 if "IsLatest" in rec:
-                    if rec['IsLatest']==True and download_files==True:
+                    if rec['IsLatest'] and download_files:
                         rec['TextPreview'] = base64.b64encode(get_content_document_file(sf,rec['Id'])).decode('utf-8')
             singer.write_message(
                 singer.RecordMessage(
@@ -858,7 +855,7 @@ def sync_records(sf, catalog_entry, state, input_state, counter, catalog,config=
                     lv_catalog_entry = lv_catalog[0].copy()
                     if len(lv_catalog) > 0:
                         handle_ListView(sf,rec_id,sobject,lv_name,lv_catalog_entry,state,input_state,start_time)
-                except RequestException as e:
+                except RequestException:
                     pass
 
 

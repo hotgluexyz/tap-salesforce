@@ -1,6 +1,5 @@
 import re
 import threading
-import time
 import backoff
 import requests
 import logging
@@ -151,7 +150,7 @@ def log_backoff_attempt(details):
     LOGGER.info("ConnectionFailure detected, triggering backoff: %d try", details.get("tries"))
 
 
-def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=too-many-branches
+def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=too-many-branches # noqa: C901
     property_schema = {}
 
     if is_report:
@@ -383,9 +382,9 @@ class Salesforce():
             timer.tags['endpoint'] = endpoint_tag
             try:
                 resp = self._make_request('GET', url, headers=headers, timeout=(5*60))
-            except:
+            except Exception:
                 if sobject is None:
-                    LOGGER.exception(f"Failed to describe sobjects!")
+                    LOGGER.exception("Failed to describe sobjects!")
                 else:
                     LOGGER.warning(f"Failed to describe SObject {sobject}")
                 return None

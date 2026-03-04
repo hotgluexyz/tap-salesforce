@@ -122,7 +122,7 @@ def add_synthetic_field(properties, mdata, field_name, field_type, field_format,
         mdata = metadata.write(
             mdata, ('properties', field_name), 'selected-by-default', True)
 
-def generate_schema(fields, sf, sobject_name, replication_key, config=None):
+def generate_schema(fields, sf, sobject_name, replication_key, config=None):  # noqa: C901
     unsupported_fields = set()
     mdata = metadata.new()
     properties = {}
@@ -440,7 +440,7 @@ def run_concurrently(fn, fn_args_list):
     return results
 
 # pylint: disable=too-many-branches,too-many-statements
-def do_discover(sf):
+def do_discover(sf):  # noqa: C901
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 
@@ -760,7 +760,7 @@ def prepare_reports_streams(catalog):
         report_stream = {}
         if stream["stream"] == "ReportList":
             for meta in stream["metadata"][:-1]:
-                if meta["metadata"].get("selected")==True:
+                if meta["metadata"].get("selected") is True:
                     report_name = meta["breadcrumb"][1]
                     report_stream = create_report_stream(report_name)
                     streams.append(report_stream)

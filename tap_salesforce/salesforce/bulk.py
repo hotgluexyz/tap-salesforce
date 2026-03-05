@@ -55,14 +55,16 @@ class Bulk():
         csv.field_size_limit(sys.maxsize)
         self.sf = sf
 
-    def has_permissions(self):
+    def check_bulk_availability(self):
+        LOGGER.info("Checking Bulk API availability")
         try:
-            self.check_bulk_quota_usage()
-        except requests.exceptions.HTTPError as err:
-            if err.response is not None:
-                for error_response_item in err.response.json():
-                    if error_response_item.get('errorCode') == 'API_DISABLED_FOR_ORG':
-                        return False
+            # Try to create a job with a dummy stream to check if the Bulk API is available
+            self._create_job({"stream": None})
+        except RequestException as ex:
+            if "Async API not enabled" in ex.response.text:
+                LOGGER.info("Bulk API is not available")
+                return False
+        LOGGER.info("Bulk API is available")
         return True
 
     def query(self, catalog_entry, state):

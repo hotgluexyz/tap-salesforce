@@ -9,7 +9,7 @@ from tap_salesforce.sync import (sync_stream, resume_syncing_bulk_query, get_str
 from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
-    TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
+    TapSalesforceException, TapSalesforceBulkAPIDisabledException)
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from hotglue_singer_sdk.tap_base import Tap
 from hotglue_singer_sdk.helpers._util import read_json_file

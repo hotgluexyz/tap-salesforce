@@ -741,7 +741,11 @@ class SalesforceTap(Tap):
             list_views=config.get('list_views'),
             api_version=config.get('api_version'),
         )
-        sf.login()
+        try:
+            sf.login()
+        except Exception:
+            self._sf_cleanup(sf)
+            raise
         return sf
 
     def _sf_cleanup(self, sf):

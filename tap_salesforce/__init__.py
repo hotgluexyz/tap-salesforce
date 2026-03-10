@@ -772,7 +772,9 @@ class SalesforceTap(Tap):
         config = dict(self.config)
         self.register_streams_from_catalog(catalog)
         self.register_state_from_file(state)
-        catalog_dict = self.input_catalog.to_dict() if self.input_catalog else {}
+        if not self.input_catalog:
+            raise TapSalesforceException("A catalog file is required to run sync. Use --catalog to provide one.")
+        catalog_dict = self.input_catalog.to_dict()
         state_dict = read_json_file(state) if isinstance(state, str) else (state or {})
         built_state = build_state(state_dict, catalog_dict)
         sf = None

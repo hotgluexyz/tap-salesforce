@@ -14,6 +14,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from hotglue_singer_sdk.tap_base import Tap
 from hotglue_singer_sdk.helpers._util import read_json_file
 from hotglue_singer_sdk import typing as th
+from hotglue_singer_sdk.helpers.capabilities import AlertingLevel
+
 
 LOGGER = singer.get_logger()
 
@@ -699,6 +701,8 @@ def do_sync(sf, catalog, state,config=None):
 
 class SalesforceTap(Tap):
     name = "tap-salesforce"
+
+    alerting_level = AlertingLevel.WARNING
 
     config_jsonschema = th.PropertiesList(
         th.Property("refresh_token", th.StringType, required=True),

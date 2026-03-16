@@ -7,6 +7,7 @@ from requests.exceptions import RequestException, ConnectionError
 import singer
 import singer.utils as singer_utils
 from singer import metadata, metrics
+from hotglue_singer_sdk.tap_base import InvalidCredentialsError
 
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.rest import Rest
@@ -360,7 +361,7 @@ class Salesforce():
             # NB: requests.models.Response is always falsy here. It is false if status code >= 400
             if isinstance(resp, requests.models.Response):
                 error_message = error_message + ", Response from Salesforce: {}".format(resp.text)
-            raise Exception(error_message) from e
+            raise InvalidCredentialsError(error_message) from e
         finally:
             LOGGER.info("Starting new login timer")
             self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD, self.login)

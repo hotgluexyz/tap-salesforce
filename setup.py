@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='tap-salesforce',
-      version='1.5.5',
+      version='1.6.0',
       description='Singer.io tap for extracting data from the Salesforce API',
       author='Stitch',
       url='https://singer.io',
@@ -11,9 +11,10 @@ setup(name='tap-salesforce',
       py_modules=['tap_salesforce'],
       install_requires=[
           'requests>=2.20.0,<=2.29.0',
-          'singer-python==5.3.1',
+          'pipelinewise-singer-python==1.2.0',
           'xmltodict==0.11.0',
-          'openpyxl==3.1.3'
+          'openpyxl==3.1.3',
+          'hotglue-singer-sdk>=1.0.15,<2.0.0'
       ],
       extras_require={
           'dev': [

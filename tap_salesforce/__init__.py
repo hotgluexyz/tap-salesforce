@@ -2,7 +2,6 @@
 import json
 import sys
 import singer
-import singer.utils as singer_utils
 from singer import metadata, metrics
 import tap_salesforce.salesforce
 from requests.exceptions import RequestException, HTTPError
@@ -10,24 +9,16 @@ from tap_salesforce.sync import (sync_stream, resume_syncing_bulk_query, get_str
 from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
-    TapSalesforceException, TapSalesforceQuotaExceededException, TapSalesforceBulkAPIDisabledException)
+    TapSalesforceException, TapSalesforceBulkAPIDisabledException)
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from hotglue_singer_sdk.tap_base import Tap
+from hotglue_singer_sdk.helpers._util import read_json_file
+from hotglue_singer_sdk import typing as th
+from hotglue_singer_sdk.helpers.capabilities import AlertingLevel
+
 
 LOGGER = singer.get_logger()
 
-REQUIRED_CONFIG_KEYS = ['refresh_token',
-                        'client_id',
-                        'client_secret',
-                        'start_date',
-                        'api_type',
-                        'select_fields_by_default']
-
-CONFIG = {
-    'refresh_token': None,
-    'client_id': None,
-    'client_secret': None,
-    'start_date': None
-}
 
 FORCED_FULL_TABLE = {
     'BackgroundOperationResult', # Does not support ordering by CreatedDate
@@ -369,7 +360,7 @@ def get_views_list(sf):
     return responses
 
 def discover_stream(
-    sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references
+    sf, sobject_name, entries, sf_custom_setting_objects, object_to_tag_references, config=None
 ):
     # Skip blacklisted SF objects depending on the api_type in use
     # ChangeEvent objects are not queryable via Bulk or REST (undocumented)
@@ -413,7 +404,7 @@ def discover_stream(
         )
         return
 
-    entry = generate_schema(fields, sf, sobject_name, replication_key, CONFIG)
+    entry = generate_schema(fields, sf, sobject_name, replication_key, config)
     entries.append(entry)
 
 
@@ -440,7 +431,7 @@ def run_concurrently(fn, fn_args_list):
     return results
 
 # pylint: disable=too-many-branches,too-many-statements
-def do_discover(sf):  # noqa: C901
+def do_discover(sf, config=None):  # noqa: C901
     """Describes a Salesforce instance's objects and generates a JSON schema for each field."""
     global_description = sf.describe()
 
@@ -475,6 +466,7 @@ def do_discover(sf):  # noqa: C901
                 entries,
                 sf_custom_setting_objects,
                 object_to_tag_references,
+                config,
             ]
             for sobject_name in chunk]
         run_concurrently(discover_stream, chunk_args)
@@ -518,14 +510,14 @@ def do_discover(sf):  # noqa: C901
     # Handle Reports
     if sf.list_reports is True:
         reports = get_reports_list(sf)
-        if CONFIG.get('report_ids'):
-            reports = [report for report in reports if report['Id'] in CONFIG.get('report_ids')]
+        if config and config.get('report_ids'):
+            reports = [report for report in reports if report['Id'] in config.get('report_ids')]
 
         mdata = metadata.new()
         properties = {}
 
         if reports:
-            if CONFIG.get("discover_report_fields", False):
+            if config and config.get("discover_report_fields", False):
                 for report in reports:
                     report_metadata = get_report_metadata(sf, report["Id"])
                     if report_metadata:
@@ -707,40 +699,60 @@ def do_sync(sf, catalog, state,config=None):
     singer.write_state(state)
     LOGGER.info("Finished sync")
 
-def main_impl():
-    args = singer_utils.parse_args(REQUIRED_CONFIG_KEYS)
-    CONFIG.update(args.config)
+class SalesforceTap(Tap):
+    name = "tap-salesforce"
 
-    sf = None
-    is_sandbox = (
-        CONFIG.get("base_uri") == "https://test.salesforce.com"
-        if CONFIG.get("base_uri")
-        else CONFIG.get("is_sandbox")
-    )
-    try:
+    alerting_level = AlertingLevel.WARNING
+
+    config_jsonschema = th.PropertiesList(
+        th.Property("refresh_token", th.StringType, required=True),
+        th.Property("client_id", th.StringType, required=True),
+        th.Property("client_secret", th.StringType, required=True),
+        th.Property("start_date", th.StringType, required=True),
+        th.Property("api_type", th.StringType, required=True),
+        th.Property("select_fields_by_default", th.BooleanType, required=True),
+        th.Property("base_uri", th.StringType),
+        th.Property("is_sandbox", th.BooleanType),
+        th.Property("quota_percent_total", th.NumberType),
+        th.Property("quota_percent_per_run", th.NumberType),
+        th.Property("api_version", th.StringType),
+        th.Property("list_reports", th.BooleanType),
+        th.Property("list_views", th.BooleanType),
+        th.Property("report_ids", th.ArrayType(th.StringType)),
+        th.Property("campaign_ids", th.ArrayType(th.StringType)),
+        th.Property("list_ids", th.ArrayType(th.StringType)),
+        th.Property("discover_report_fields", th.BooleanType),
+    ).to_dict()
+
+    def _build_sf(self):
+        config = dict(self.config)
+        is_sandbox = (
+            config.get("base_uri") == "https://test.salesforce.com"
+            if config.get("base_uri")
+            else config.get("is_sandbox")
+        )
         sf = Salesforce(
-            refresh_token=CONFIG['refresh_token'],
-            sf_client_id=CONFIG['client_id'],
-            sf_client_secret=CONFIG['client_secret'],
-            quota_percent_total=CONFIG.get('quota_percent_total'),
-            quota_percent_per_run=CONFIG.get('quota_percent_per_run'),
+            refresh_token=config['refresh_token'],
+            sf_client_id=config['client_id'],
+            sf_client_secret=config['client_secret'],
+            quota_percent_total=config.get('quota_percent_total'),
+            quota_percent_per_run=config.get('quota_percent_per_run'),
             is_sandbox=is_sandbox,
-            select_fields_by_default=CONFIG.get('select_fields_by_default'),
-            default_start_date=CONFIG.get('start_date'),
-            api_type=CONFIG.get('api_type'),
-            list_reports=CONFIG.get('list_reports'),
-            list_views=CONFIG.get('list_views'),            # config 
-            api_version=CONFIG.get('api_version')
-            )
-        sf.login()
+            select_fields_by_default=config.get('select_fields_by_default'),
+            default_start_date=config.get('start_date'),
+            api_type=config.get('api_type'),
+            list_reports=config.get('list_reports'),
+            list_views=config.get('list_views'),
+            api_version=config.get('api_version'),
+        )
+        try:
+            sf.login()
+        except Exception:
+            self._sf_cleanup(sf)
+            raise
+        return sf
 
-        if args.discover:
-            do_discover(sf)
-        elif args.properties:
-            catalog = args.properties
-            state = build_state(args.state, catalog)
-            do_sync(sf, catalog, state,CONFIG)
-    finally:
+    def _sf_cleanup(self, sf):
         if sf:
             if sf.rest_requests_attempted > 0:
                 LOGGER.debug(
@@ -752,6 +764,39 @@ def main_impl():
                     sf.jobs_completed)
             if sf.login_timer:
                 sf.login_timer.cancel()
+
+    def discover_streams(self):
+        return []
+
+    def run_discovery(self):
+        sf = None
+        try:
+            sf = self._build_sf()
+            do_discover(sf, dict(self.config))
+        finally:
+            self._sf_cleanup(sf)
+
+    def run_sync(self, catalog=None, state=None):
+        config = dict(self.config)
+        self.register_streams_from_catalog(catalog)
+        self.register_state_from_file(state)
+        if not self.input_catalog:
+            raise TapSalesforceException("A catalog file is required to run sync. Use --catalog to provide one.")
+        # Read catalog directly from file to keep the metadata needed for the sync
+        if isinstance(catalog, str):
+            catalog_dict = read_json_file(catalog)
+        elif isinstance(catalog, dict):
+            catalog_dict = catalog
+        else:
+            catalog_dict = self.input_catalog.to_dict()
+        state_dict = read_json_file(state) if isinstance(state, str) else (state or {})
+        built_state = build_state(state_dict, catalog_dict)
+        sf = None
+        try:
+            sf = self._build_sf()
+            do_sync(sf, catalog_dict, built_state, config)
+        finally:
+            self._sf_cleanup(sf)
 
 def prepare_reports_streams(catalog):
     streams = catalog["streams"]
@@ -812,17 +857,7 @@ def create_report_stream(report_name):
         return entry
 
 def main():
-    try:
-        main_impl()
-    except TapSalesforceQuotaExceededException as e:
-        LOGGER.critical(e)
-        sys.exit(2)
-    except TapSalesforceException as e:
-        LOGGER.critical(e)
-        sys.exit(1)
-    except Exception as e:
-        LOGGER.critical(e)
-        raise e
+    SalesforceTap.cli()
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

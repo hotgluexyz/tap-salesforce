@@ -7,7 +7,7 @@ from requests.exceptions import RequestException, ConnectionError
 import singer
 import singer.utils as singer_utils
 from singer import metadata, metrics
-from hotglue_singer_sdk.tap_base import InvalidCredentialsError
+from hotglue_etl_exceptions import InvalidCredentialsError
 
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.rest import Rest

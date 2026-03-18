@@ -9,12 +9,13 @@ from tap_salesforce.sync import (sync_stream, resume_syncing_bulk_query, get_str
 from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
-    TapSalesforceException, TapSalesforceBulkAPIDisabledException)
+    TapSalesforceException, TapSalesforceBulkAPIDisabledException, TapSalesforceQuotaExceededException)
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from hotglue_singer_sdk.tap_base import Tap
 from hotglue_singer_sdk.helpers._util import read_json_file
 from hotglue_singer_sdk import typing as th
 from hotglue_singer_sdk.helpers.capabilities import AlertingLevel
+from hotglue_etl_exceptions import InvalidCredentialsError
 
 
 LOGGER = singer.get_logger()
@@ -703,6 +704,10 @@ class SalesforceTap(Tap):
     name = "tap-salesforce"
 
     alerting_level = AlertingLevel.WARNING
+    exception_alerting_level_map = {
+        TapSalesforceQuotaExceededException: AlertingLevel.NONE,
+        InvalidCredentialsError: AlertingLevel.NONE
+    }
 
     config_jsonschema = th.PropertiesList(
         th.Property("refresh_token", th.StringType, required=True),

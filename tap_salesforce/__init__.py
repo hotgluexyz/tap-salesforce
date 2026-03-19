@@ -745,7 +745,7 @@ class SalesforceTap(Tap):
         )
 
         if is_sandbox:
-            auth_endpoint = 'https://test.salesforce.com/services/oauth2/token' if is_sandbox else 'https://login.salesforce.com/services/oauth2/token'
+            auth_endpoint = 'https://test.salesforce.com/services/oauth2/token'
         return authenticator, auth_endpoint
 
     def _build_sf(self):

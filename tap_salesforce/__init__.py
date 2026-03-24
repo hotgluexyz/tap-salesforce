@@ -730,6 +730,13 @@ class SalesforceTap(Tap):
         th.Property("discover_report_fields", th.BooleanType),
     ).to_dict()
     
+    @staticmethod
+    def _is_sandbox(config: dict) -> bool:
+        """Determine whether the target org is a Salesforce sandbox."""
+        if config.get("base_uri"):
+            return config["base_uri"] == "https://test.salesforce.com"
+        return bool(config.get("is_sandbox"))
+
     @classmethod
     def access_token_support(cls, connector=None):
         """Return authenticator class and auth endpoint for token refresh."""
@@ -737,24 +744,14 @@ class SalesforceTap(Tap):
         auth_endpoint = "https://login.salesforce.com/services/oauth2/token"
         
         config = connector.config if connector and connector.config else {}
-        
-        is_sandbox = (
-            config.get("base_uri") == "https://test.salesforce.com"
-            if config.get("base_uri")
-            else config.get("is_sandbox")
-        )
 
-        if is_sandbox:
+        if cls._is_sandbox(config):
             auth_endpoint = 'https://test.salesforce.com/services/oauth2/token'
         return authenticator, auth_endpoint
 
     def _build_sf(self):
         config = dict(self.config)
-        is_sandbox = (
-            config.get("base_uri") == "https://test.salesforce.com"
-            if config.get("base_uri")
-            else config.get("is_sandbox")
-        )
+        is_sandbox = self._is_sandbox(config)
         sf = Salesforce(
             refresh_token=config['refresh_token'],
             sf_client_id=config['client_id'],

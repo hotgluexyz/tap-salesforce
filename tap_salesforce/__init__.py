@@ -735,7 +735,8 @@ class SalesforceTap(Tap):
         """Determine whether the target org is a Salesforce sandbox."""
         if config.get("base_uri"):
             return config["base_uri"] == "https://test.salesforce.com"
-        return bool(config.get("is_sandbox"))
+        val = config.get("is_sandbox")
+        return val is True or (isinstance(val, str) and val.lower() == "true")
 
     @classmethod
     def access_token_support(cls, connector=None):

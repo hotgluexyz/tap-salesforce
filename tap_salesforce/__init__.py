@@ -16,6 +16,7 @@ from hotglue_singer_sdk.helpers._util import read_json_file
 from hotglue_singer_sdk import typing as th
 from hotglue_singer_sdk.helpers.capabilities import AlertingLevel
 from hotglue_etl_exceptions import InvalidCredentialsError
+from tap_salesforce.auth import SalesforceOAuthAuthenticator
 
 
 LOGGER = singer.get_logger()
@@ -728,14 +729,30 @@ class SalesforceTap(Tap):
         th.Property("list_ids", th.ArrayType(th.StringType)),
         th.Property("discover_report_fields", th.BooleanType),
     ).to_dict()
+    
+    @staticmethod
+    def _is_sandbox(config: dict) -> bool:
+        """Determine whether the target org is a Salesforce sandbox."""
+        if config.get("base_uri"):
+            return config["base_uri"] == "https://test.salesforce.com"
+        val = config.get("is_sandbox")
+        return val is True or (isinstance(val, str) and val.lower() == "true")
+
+    @classmethod
+    def access_token_support(cls, connector=None):
+        """Return authenticator class and auth endpoint for token refresh."""
+        authenticator = SalesforceOAuthAuthenticator
+        auth_endpoint = "https://login.salesforce.com/services/oauth2/token"
+        
+        config = connector.config if connector and connector.config else {}
+
+        if cls._is_sandbox(config):
+            auth_endpoint = 'https://test.salesforce.com/services/oauth2/token'
+        return authenticator, auth_endpoint
 
     def _build_sf(self):
         config = dict(self.config)
-        is_sandbox = (
-            config.get("base_uri") == "https://test.salesforce.com"
-            if config.get("base_uri")
-            else config.get("is_sandbox")
-        )
+        is_sandbox = self._is_sandbox(config)
         sf = Salesforce(
             refresh_token=config['refresh_token'],
             sf_client_id=config['client_id'],

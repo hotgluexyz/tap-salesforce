@@ -878,6 +878,7 @@ def create_report_stream(report_name):
         }
         return entry
 
+
 def main():
     SalesforceTap.cli()
 

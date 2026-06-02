@@ -511,9 +511,16 @@ def do_discover(sf, config=None):  # noqa: C901
 
     # Handle Reports
     if sf.list_reports is True:
-        reports = get_reports_list(sf)
-        if config and config.get('report_ids'):
-            reports = [report for report in reports if report['Id'] in config.get('report_ids')]
+        unfiltered_reports = get_reports_list(sf)
+        report_ids = config.get('report_ids') or []
+        report_names = config.get('report_names') or []
+        if report_ids or report_names:
+            reports = [
+                report for report in unfiltered_reports
+                if report['Id'] in report_ids or report['Name'] in report_names
+            ]
+        else:
+            reports = unfiltered_reports
 
         mdata = metadata.new()
         properties = {}

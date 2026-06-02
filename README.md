@@ -64,7 +64,7 @@ There are three ways to sync reports using this tap:
 
 You can add the following to your config.json:
 ```json
-"report_ids": ["UQFG134...", "UIF31551..."]
+"report_ids": ["00OK...", "00O3..."]
 ```
 
 This will filter your leads + contacts streams to only leads and contacts that are in this particular report
@@ -74,11 +74,12 @@ This will filter your leads + contacts streams to only leads and contacts that a
 You can add the following to your config.json:
 ```json
 "list_reports": true
-"report_ids": ["UQFG134...", "UIF31551..."]
+"report_ids": ["00OK...", "00O3..."]
+"report_names": ["Email Sends by User over Time", "Leads Report"]
 ```
 
 During the discover process, the tap will add a stream named `ReportList` where each field is a different report which is queryable. 
-If you pass the `report_ids` field, then only configured reports will be added to the `ReportList` stream.
+If you pass the `report_ids` and/or `report_names` fields, then only configured reports will be added to the `ReportList` stream.
 
 The selected fields of this stream will each come through as their own stream when running a sync. 
 
@@ -92,7 +93,8 @@ If you want to get past the 2k record limit, you can configure:
 ```json
 "list_reports": true,
 "discover_report_fields": true,
-"report_ids": ["UQFG134...", "UIF31551..."]
+"report_ids": ["00OK...", "00O3..."]
+"report_names": ["Email Sends by User over Time", "Leads Report"]
 ```
 
 This will:

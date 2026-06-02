@@ -428,6 +428,7 @@ def _execute_chunked_query(sf, catalog_entry, state, base_query, record_ids, chu
     return iter(all_results)
 
 def sync_filtered_accounts(sf, state, stream, catalog_entry, replication_key, config):  # noqa: C901
+    #used to sync stream in ["Contact", "Lead"] only
     if not any([config.get("list_ids"), config.get("campaign_ids"), config.get("report_ids")]):
         raise ValueError("At least one filtering method (list_ids, campaign_ids, or report_ids) must be specified")
 

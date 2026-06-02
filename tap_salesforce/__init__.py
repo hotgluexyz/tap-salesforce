@@ -511,9 +511,16 @@ def do_discover(sf, config=None):  # noqa: C901
 
     # Handle Reports
     if sf.list_reports is True:
-        reports = get_reports_list(sf)
-        if config and config.get('report_ids'):
-            reports = [report for report in reports if report['Id'] in config.get('report_ids')]
+        unfiltered_reports = get_reports_list(sf)
+        report_ids = (config or {}).get('report_ids') or []
+        report_names = (config or {}).get('report_names') or []
+        if report_ids or report_names:
+            reports = [
+                report for report in unfiltered_reports
+                if report['Id'] in report_ids or report['Name'] in report_names
+            ]
+        else:
+            reports = unfiltered_reports
 
         mdata = metadata.new()
         properties = {}
@@ -725,6 +732,7 @@ class SalesforceTap(Tap):
         th.Property("list_reports", th.BooleanType),
         th.Property("list_views", th.BooleanType),
         th.Property("report_ids", th.ArrayType(th.StringType)),
+        th.Property("report_names", th.ArrayType(th.StringType)),
         th.Property("campaign_ids", th.ArrayType(th.StringType)),
         th.Property("list_ids", th.ArrayType(th.StringType)),
         th.Property("discover_report_fields", th.BooleanType),

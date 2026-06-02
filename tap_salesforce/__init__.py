@@ -512,8 +512,8 @@ def do_discover(sf, config=None):  # noqa: C901
     # Handle Reports
     if sf.list_reports is True:
         unfiltered_reports = get_reports_list(sf)
-        report_ids = config and config.get('report_ids') or []
-        report_names = config and config.get('report_names') or []
+        report_ids = (config or {}).get('report_ids') or []
+        report_names = (config or {}).get('report_names') or []
         if report_ids or report_names:
             reports = [
                 report for report in unfiltered_reports

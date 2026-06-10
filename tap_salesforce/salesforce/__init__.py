@@ -320,7 +320,8 @@ class Salesforce():
                 raise ex
             if resp.status_code == 501 and "/analytics/reports" in url:
                 raise ex
-            if 500 <= resp.status_code <600:
+            if 500 <= resp.status_code <600 \
+                or 'InvalidSessionId' in resp.text:
                 raise RetriableError(ex)
 
             if resp.status_code == 403 and "API_DISABLED_FOR_ORG" in resp.text:

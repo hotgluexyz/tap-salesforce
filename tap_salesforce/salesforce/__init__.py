@@ -1,5 +1,6 @@
 import re
 import threading
+import time
 import backoff
 import requests
 import logging
@@ -235,6 +236,7 @@ class Salesforce():
         self.sf_client_id = sf_client_id
         self.sf_client_secret = sf_client_secret
         self.session = requests.Session()
+        self._invalid_session_id_retry = False
         self.access_token = None
         self.instance_url = None
         self.list_reports = list_reports
@@ -294,6 +296,16 @@ class Salesforce():
                                                                        self.quota_percent_per_run)
             raise TapSalesforceQuotaExceededException(partial_message)
 
+    def _refresh_session_and_headers(self, headers):
+        """Exchange refresh_token for a new access_token and update request headers."""
+        LOGGER.info("Invalid session detected, refreshing OAuth token before retry")
+        self.login()
+        if "Authorization" in headers:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        if "X-SFDC-Session" in headers:
+            headers["X-SFDC-Session"] = self.access_token
+
+
     # pylint: disable=too-many-arguments
     @backoff.on_exception(backoff.expo,
                           (ConnectionError, JSONDecodeError, RetriableError),
@@ -301,6 +313,13 @@ class Salesforce():
                           factor=2,
                           on_backoff=log_backoff_attempt)
     def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, hide_body_in_logs=False):
+        
+        if '/services/oauth2/token' not in url:
+            if self._invalid_session_id_retry:
+                self._refresh_session_and_headers(headers)
+                self._invalid_session_id_retry = False
+
+
         if http_method == "GET":
             LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
             resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
@@ -314,14 +333,19 @@ class Salesforce():
         try:
             resp.raise_for_status()
         except RequestException as ex:
+            if ('InvalidSessionId' in resp.text \
+                or 'INVALID_SESSION_ID' in resp.text) \
+                and '/services/oauth2/token' not in url:
+                self._invalid_session_id_retry = True
+                raise RetriableError(ex)
+
             if resp.status_code == 500 and 'List view filter is not FilterByDynsql Context' in resp.text:
                 # Corrupted list view, skip it
                 LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
                 raise ex
             if resp.status_code == 501 and "/analytics/reports" in url:
                 raise ex
-            if 500 <= resp.status_code <600 \
-                or 'InvalidSessionId' in resp.text:
+            if 500 <= resp.status_code <600:
                 raise RetriableError(ex)
 
             if resp.status_code == 403 and "API_DISABLED_FOR_ORG" in resp.text:

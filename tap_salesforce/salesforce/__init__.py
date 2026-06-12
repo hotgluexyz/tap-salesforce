@@ -1,6 +1,5 @@
 import re
 import threading
-import time
 import backoff
 import requests
 import logging

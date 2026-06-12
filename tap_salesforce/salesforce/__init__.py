@@ -389,6 +389,8 @@ class Salesforce():
                 error_message = error_message + ", Response from Salesforce: {}".format(resp.text)
             raise InvalidCredentialsError(error_message) from e
         finally:
+            if self.login_timer is not None:
+                self.login_timer.cancel()
             LOGGER.info("Starting new login timer")
             self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD, self.login)
             self.login_timer.start()

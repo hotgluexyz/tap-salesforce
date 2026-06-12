@@ -235,7 +235,7 @@ class Salesforce():
         self.sf_client_id = sf_client_id
         self.sf_client_secret = sf_client_secret
         self.session = requests.Session()
-        self._invalid_session_id_retry = False
+        self._thread_state = threading.local()
         self.access_token = None
         self.instance_url = None
         self.list_reports = list_reports
@@ -303,7 +303,7 @@ class Salesforce():
             headers["Authorization"] = f"Bearer {self.access_token}"
         if "X-SFDC-Session" in headers:
             headers["X-SFDC-Session"] = self.access_token
-
+        self._thread_state.invalid_session_id_retry = False
 
     # pylint: disable=too-many-arguments
     @backoff.on_exception(backoff.expo,
@@ -313,11 +313,9 @@ class Salesforce():
                           on_backoff=log_backoff_attempt)
     def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, hide_body_in_logs=False):
         
-        if '/services/oauth2/token' not in url:
-            if self._invalid_session_id_retry:
-                self._refresh_session_and_headers(headers)
-                self._invalid_session_id_retry = False
-
+        if '/services/oauth2/token' not in url \
+            and getattr(self._thread_state, 'invalid_session_id_retry', False):
+            self._refresh_session_and_headers(headers)
 
         if http_method == "GET":
             LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
@@ -335,7 +333,7 @@ class Salesforce():
             if ('InvalidSessionId' in resp.text \
                 or 'INVALID_SESSION_ID' in resp.text) \
                 and '/services/oauth2/token' not in url:
-                self._invalid_session_id_retry = True
+                self._thread_state.invalid_session_id_retry = True
                 raise RetriableError(ex)
 
             if resp.status_code == 500 and 'List view filter is not FilterByDynsql Context' in resp.text:

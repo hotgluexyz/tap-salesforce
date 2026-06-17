@@ -5,10 +5,11 @@ import pytest
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 from openpyxl import Workbook
+from requests.exceptions import HTTPError
 
 from hotglue_singer_sdk.helpers.capabilities import AlertingLevel
 from tap_salesforce import SalesforceTap
-from tap_salesforce.salesforce.exceptions import TapSalesforceReportRetrievalException
+from tap_salesforce.salesforce.exceptions import TapSalesforceReportNotFoundException
 from tap_salesforce.sync import get_report_record_ids_from_xlsx, sync_report_via_excel
 from tests.conftest import get_aware_datetime
 
@@ -427,20 +428,37 @@ class TestSyncReportViaExcel:
 
 
 class TestReportRetrievalErrors:
-    def test_get_report_record_ids_from_xlsx_raises_explicit_exception(self, mock_sf_client):
-        """Report retrieval failures should raise a typed exception for alert suppression."""
-        mock_sf_client._make_request.side_effect = Exception("404 Client Error: Not Found")
+    def test_get_report_record_ids_from_xlsx_raises_report_not_found_for_404(self, mock_sf_client):
+        """A missing report should raise a typed exception for alert suppression."""
+        response = MagicMock(status_code=404)
+        request = MagicMock()
+        error = HTTPError("404 Client Error: Not Found")
+        error.response = response
+        error.request = request
+        mock_sf_client._make_request.side_effect = error
 
-        with pytest.raises(TapSalesforceReportRetrievalException) as exc_info:
+        with pytest.raises(TapSalesforceReportNotFoundException) as exc_info:
             get_report_record_ids_from_xlsx(mock_sf_client, ["00Oak00000H3b7hEAB"], "Contact")
 
         assert "Error retrieving report data" in str(exc_info.value)
         assert "00Oak00000H3b7hEAB" in str(exc_info.value)
-        assert isinstance(exc_info.value.__cause__, TapSalesforceReportRetrievalException)
+        assert isinstance(exc_info.value.__cause__, TapSalesforceReportNotFoundException)
 
-    def test_report_retrieval_exception_alerting_is_disabled(self):
-        """Typed report retrieval exceptions should not trigger connector alerts."""
+    def test_get_report_record_ids_from_xlsx_reraises_non_404_errors(self, mock_sf_client):
+        """Non-404 report failures should continue to bubble up normally."""
+        response = MagicMock(status_code=500)
+        request = MagicMock()
+        error = HTTPError("500 Server Error")
+        error.response = response
+        error.request = request
+        mock_sf_client._make_request.side_effect = error
+
+        with pytest.raises(HTTPError):
+            get_report_record_ids_from_xlsx(mock_sf_client, ["00Oak00000H3b7hEAB"], "Contact")
+
+    def test_report_not_found_exception_alerting_is_disabled(self):
+        """Missing-report exceptions should not trigger connector alerts."""
         assert (
-            SalesforceTap.exception_alerting_level_map[TapSalesforceReportRetrievalException]
+            SalesforceTap.exception_alerting_level_map[TapSalesforceReportNotFoundException]
             == AlertingLevel.NONE
         )

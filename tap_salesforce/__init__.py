@@ -12,7 +12,7 @@ from tap_salesforce.salesforce.exceptions import (
     TapSalesforceException,
     TapSalesforceBulkAPIDisabledException,
     TapSalesforceQuotaExceededException,
-    TapSalesforceReportRetrievalException,
+    TapSalesforceReportNotFoundException,
 )
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from hotglue_singer_sdk.tap_base import Tap
@@ -719,7 +719,7 @@ class SalesforceTap(Tap):
     exception_alerting_level_map = {
         TapSalesforceQuotaExceededException: AlertingLevel.NONE,
         InvalidCredentialsError: AlertingLevel.NONE,
-        TapSalesforceReportRetrievalException: AlertingLevel.NONE,
+        TapSalesforceReportNotFoundException: AlertingLevel.NONE,
     }
 
     config_jsonschema = th.PropertiesList(

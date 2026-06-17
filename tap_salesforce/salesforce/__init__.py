@@ -323,7 +323,7 @@ class Salesforce():
             if 500 <= resp.status_code <600:
                 raise RetriableError(ex)
 
-            if resp.status_code == 403 and "API_DISABLED_FOR_ORG" in resp.text:
+            if resp.status_code == 403 and ("API_DISABLED_FOR_ORG" in resp.text or "REQUEST_LIMIT_EXCEEDED" in resp.text):
                 raise InvalidCredentialsError("{} Response: {}".format(ex, resp.text)) from ex
 
             raise ex

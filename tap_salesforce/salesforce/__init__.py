@@ -326,6 +326,9 @@ class Salesforce():
             if resp.status_code == 403 and "API_DISABLED_FOR_ORG" in resp.text:
                 raise InvalidCredentialsError("{} Response: {}".format(ex, resp.text)) from ex
 
+            if resp.status_code == 403 and "REQUEST_LIMIT_EXCEEDED" in resp.text:
+                raise TapSalesforceQuotaExceededException("{} Response: {}".format(ex, resp.text)) from ex
+
             raise ex
 
         if resp.headers.get('Sforce-Limit-Info') is not None:

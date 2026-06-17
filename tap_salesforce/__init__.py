@@ -9,7 +9,11 @@ from tap_salesforce.sync import (sync_stream, resume_syncing_bulk_query, get_str
 from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
-    TapSalesforceException, TapSalesforceBulkAPIDisabledException, TapSalesforceQuotaExceededException)
+    TapSalesforceException,
+    TapSalesforceBulkAPIDisabledException,
+    TapSalesforceQuotaExceededException,
+    TapSalesforceReportRetrievalException,
+)
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from hotglue_singer_sdk.tap_base import Tap
 from hotglue_singer_sdk.helpers._util import read_json_file
@@ -714,7 +718,8 @@ class SalesforceTap(Tap):
     alerting_level = AlertingLevel.WARNING
     exception_alerting_level_map = {
         TapSalesforceQuotaExceededException: AlertingLevel.NONE,
-        InvalidCredentialsError: AlertingLevel.NONE
+        InvalidCredentialsError: AlertingLevel.NONE,
+        TapSalesforceReportRetrievalException: AlertingLevel.NONE,
     }
 
     config_jsonschema = th.PropertiesList(

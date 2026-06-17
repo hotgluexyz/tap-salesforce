@@ -8,6 +8,7 @@ from tap_salesforce.salesforce.bulk import Bulk
 import base64
 from io import BytesIO
 from openpyxl import load_workbook
+from tap_salesforce.salesforce.exceptions import TapSalesforceReportRetrievalException
 LOGGER = singer.get_logger()
 
 BLACKLISTED_FIELDS = set(['attributes'])
@@ -321,10 +322,16 @@ def get_report_record_ids_from_xlsx(sf, report_ids, stream):
                 LOGGER.info(f"Found {len(record_ids)} {stream} IDs from report {report_id}")
 
             except Exception as e:
-                raise Exception(f"Error retrieving report {report_id}: {str(e)}")
+                raise TapSalesforceReportRetrievalException(
+                    f"Error retrieving report {report_id}: {str(e)}"
+                ) from e
                 
     except Exception as e:
-        raise Exception(f"Error retrieving report data: {str(e)}")
+        if isinstance(e, TapSalesforceReportRetrievalException):
+            raise TapSalesforceReportRetrievalException(
+                f"Error retrieving report data: {str(e)}"
+            ) from e
+        raise
 
     return record_ids
 

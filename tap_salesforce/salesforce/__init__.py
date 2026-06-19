@@ -235,6 +235,7 @@ class Salesforce():
         self.sf_client_id = sf_client_id
         self.sf_client_secret = sf_client_secret
         self.session = requests.Session()
+        self._thread_state = threading.local()
         self.access_token = None
         self.instance_url = None
         self.list_reports = list_reports
@@ -294,6 +295,16 @@ class Salesforce():
                                                                        self.quota_percent_per_run)
             raise TapSalesforceQuotaExceededException(partial_message)
 
+    def _refresh_session_and_headers(self, headers):
+        """Exchange refresh_token for a new access_token and update request headers."""
+        LOGGER.info("Invalid session detected, refreshing OAuth token before retry")
+        self.login()
+        if "Authorization" in headers:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        if "X-SFDC-Session" in headers:
+            headers["X-SFDC-Session"] = self.access_token
+        self._thread_state.invalid_session_id_retry = False
+
     # pylint: disable=too-many-arguments
     @backoff.on_exception(backoff.expo,
                           (ConnectionError, JSONDecodeError, RetriableError),
@@ -301,6 +312,11 @@ class Salesforce():
                           factor=2,
                           on_backoff=log_backoff_attempt)
     def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, hide_body_in_logs=False):
+        
+        if '/services/oauth2/token' not in url \
+            and getattr(self._thread_state, 'invalid_session_id_retry', False):
+            self._refresh_session_and_headers(headers)
+
         if http_method == "GET":
             LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
             resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
@@ -314,6 +330,12 @@ class Salesforce():
         try:
             resp.raise_for_status()
         except RequestException as ex:
+            if ('InvalidSessionId' in resp.text \
+                or 'INVALID_SESSION_ID' in resp.text) \
+                and '/services/oauth2/token' not in url:
+                self._thread_state.invalid_session_id_retry = True
+                raise RetriableError(ex)
+
             if resp.status_code == 500 and 'List view filter is not FilterByDynsql Context' in resp.text:
                 # Corrupted list view, skip it
                 LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
@@ -370,6 +392,8 @@ class Salesforce():
                 error_message = error_message + ", Response from Salesforce: {}".format(resp.text)
             raise InvalidCredentialsError(error_message) from e
         finally:
+            if self.login_timer is not None:
+                self.login_timer.cancel()
             LOGGER.info("Starting new login timer")
             self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD, self.login)
             self.login_timer.start()

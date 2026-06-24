@@ -736,6 +736,7 @@ class SalesforceTap(Tap):
         th.Property("campaign_ids", th.ArrayType(th.StringType)),
         th.Property("list_ids", th.ArrayType(th.StringType)),
         th.Property("discover_report_fields", th.BooleanType),
+        th.Property("bulk_chunking", th.BooleanType),
     ).to_dict()
     
     @staticmethod
@@ -774,6 +775,7 @@ class SalesforceTap(Tap):
             list_reports=config.get('list_reports'),
             list_views=config.get('list_views'),
             api_version=config.get('api_version'),
+            bulk_chunking=config.get('bulk_chunking'),
         )
         try:
             sf.login()

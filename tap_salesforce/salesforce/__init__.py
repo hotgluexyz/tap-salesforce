@@ -228,7 +228,8 @@ class Salesforce():
                  api_type=None,
                  list_reports=False,
                  list_views=False,
-                 api_version=None):
+                 api_version=None,
+                 bulk_chunking=None):
         self.api_type = api_type.upper() if api_type else None
         self.refresh_token = refresh_token
         self.token = token
@@ -250,13 +251,13 @@ class Salesforce():
             quota_percent_total) if quota_percent_total is not None else 80
         self.is_sandbox = is_sandbox is True or (isinstance(is_sandbox, str) and is_sandbox.lower() == 'true')
         self.select_fields_by_default = select_fields_by_default is True or (isinstance(select_fields_by_default, str) and select_fields_by_default.lower() == 'true')
+        self.pk_chunking = bulk_chunking if bulk_chunking is not None else False
         self.default_start_date = default_start_date
         self.rest_requests_attempted = 0
         self.jobs_completed = 0
         self.login_timer = None
         self.version = api_version or "41.0"
         self.data_url = "{}/services/data/v" + self.version + "/{}"
-        self.pk_chunking = False
 
         # validate start_date
         singer_utils.strptime(default_start_date)

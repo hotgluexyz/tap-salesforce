@@ -9,5 +9,8 @@ class TapSalesforceQuotaExceededException(TapSalesforceException):
 class TapSalesforceBulkAPIDisabledException(TapSalesforceException):
     pass
 
+class TapSalesforceReportNotFoundException(TapSalesforceException):
+    pass
+
 class RetriableError(TapSalesforceException):
     pass

@@ -130,14 +130,14 @@ class Bulk():
         if not failed_batches:
             return
 
-        LOGGER.error(
+        LOGGER.info(
             "PK chunked job %s has %d failed batch(es) out of %d total",
             job_id,
             len(failed_batches),
             len(batches),
         )
         for batch in failed_batches:
-            LOGGER.error(
+            LOGGER.info(
                 "Failed batch - job_id=%s batch_id=%s Raw batch=%s",
                 job_id,
                 batch.get('id'),

@@ -10,6 +10,8 @@ import requests
 from requests.exceptions import RequestException
 import urllib3.exceptions
 import backoff
+import re
+
 
 import xmltodict
 
@@ -68,7 +70,8 @@ class Bulk():
     def query(self, catalog_entry, state):
         self.check_bulk_quota_usage()
 
-        for record in self._bulk_query(catalog_entry, state):
+        bulk_chunking = self.sf.pk_chunking if self.sf.pk_chunking else False
+        for record in self._bulk_query(catalog_entry, state, bulk_chunking):
             yield record
 
         self.sf.jobs_completed += 1
@@ -91,6 +94,20 @@ class Bulk():
         quota_remaining = quota['Remaining']
         percent_used = (1 - (quota_remaining / quota_max)) * 100
 
+        LOGGER.info(
+            "Bulk API quota: %d/%d remaining (%.2f%% used). "
+            "Jobs completed this run: %d (limit: %d, %.2f%% per run). "
+            "Configured thresholds: %.2f%% total, %.2f%% per run.",
+            quota_remaining,
+            quota_max,
+            percent_used,
+            self.sf.jobs_completed,
+            max_requests_for_run,
+            (self.sf.jobs_completed / quota_max) * 100,
+            self.sf.quota_percent_total,
+            self.sf.quota_percent_per_run,
+        )
+
         if percent_used > self.sf.quota_percent_total:
             total_message = ("Salesforce has reported {}/{} ({:3.2f}%) total Bulk API quota " +
                              "used across all Salesforce Applications. Terminating " +
@@ -108,19 +125,44 @@ class Bulk():
                                                                        self.sf.quota_percent_per_run)
             raise TapSalesforceQuotaExceededException(partial_message)
 
+    def _log_failed_batch_details(self, job_id, batches):
+        failed_batches = [b for b in batches if b.get('state') == 'Failed']
+        if not failed_batches:
+            return
+
+        LOGGER.info(
+            "PK chunked job %s has %d failed batch(es) out of %d total",
+            job_id,
+            len(failed_batches),
+            len(batches),
+        )
+        for batch in failed_batches:
+            LOGGER.info(
+                "Failed batch - job_id=%s batch_id=%s Raw batch=%s",
+                job_id,
+                batch.get('id'),
+                batch
+            )
+
     def _get_bulk_headers(self):
         return {"X-SFDC-Session": self.sf.access_token,
                 "Content-Type": "application/json"}
 
     def _can_pk_chunk_job(self, failure_message): # pylint: disable=no-self-use
-        return "QUERY_TIMEOUT" in failure_message or \
-               "Retried more than 15 times" in failure_message or \
-               "Failed to write query result" in failure_message
+        return (
+            "QUERY_TIMEOUT" in failure_message or
+            bool(re.search(r"Retried more than \d+ times", failure_message)) or
+            "Failed to write query result" in failure_message
+        )
 
-    def _bulk_query(self, catalog_entry, state):
-        job_id = self._create_job(catalog_entry)
+    def _bulk_query(self, catalog_entry, state, use_pk_chunking=False):
         start_date = self.sf.get_start_date(state, catalog_entry)
 
+        if use_pk_chunking:
+            yield from self._yield_pk_chunked_query(catalog_entry, state, start_date)
+            return
+
+        job_id = self._create_job(catalog_entry)
         batch_id = self._add_batch(catalog_entry, job_id, start_date)
 
         self._close_job(job_id)
@@ -129,36 +171,45 @@ class Bulk():
 
         if batch_status['state'] == 'Failed':
             if self._can_pk_chunk_job(batch_status['stateMessage']):
-                batch_status = self._bulk_query_with_pk_chunking(catalog_entry, start_date)
-                job_id = batch_status['job_id']
-
-                # Set pk_chunking to True to indicate that we should write a bookmark differently
-                self.sf.pk_chunking = True
-
-                # Add the bulk Job ID and its batches to the state so it can be resumed if necessary
-                tap_stream_id = catalog_entry['tap_stream_id']
-                state = singer.write_bookmark(state, tap_stream_id, 'JobID', job_id)
-                state = singer.write_bookmark(state, tap_stream_id, 'BatchIDs', batch_status['completed'][:])
-
-                for completed_batch_id in batch_status['completed']:
-                    for result in self.get_batch_results(job_id, completed_batch_id, catalog_entry):
-                        yield result
-                    # Remove the completed batch ID and write state
-                    state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"].remove(completed_batch_id)
-                    LOGGER.info("Finished syncing batch %s. Removing batch from state.", completed_batch_id)
-                    LOGGER.info("Batches to go: %d", len(state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"]))
-                    singer.write_state(state)
+                yield from self._yield_pk_chunked_query(catalog_entry, state, start_date)
             else:
                 raise TapSalesforceException(batch_status['stateMessage'])
         else:
             for result in self.get_batch_results(job_id, batch_id, catalog_entry):
                 yield result
 
+    def _yield_pk_chunked_query(self, catalog_entry, state, start_date):
+        batch_status = self._bulk_query_with_pk_chunking(catalog_entry, start_date)
+        job_id = batch_status['job_id']
+
+        # Set pk_chunking to True to indicate that we should write a bookmark differently
+        self.sf.pk_chunking = True
+
+        # Add the bulk Job ID and its batches to the state so it can be resumed if necessary
+        tap_stream_id = catalog_entry['tap_stream_id']
+        state = singer.write_bookmark(state, tap_stream_id, 'JobID', job_id)
+        state = singer.write_bookmark(state, tap_stream_id, 'BatchIDs', batch_status['completed'][:])
+
+        for completed_batch_id in batch_status['completed']:
+            for result in self.get_batch_results(job_id, completed_batch_id, catalog_entry):
+                yield result
+            state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"].remove(completed_batch_id)
+            LOGGER.info("Finished syncing batch %s. Removing batch from state.", completed_batch_id)
+            LOGGER.info("Batches to go: %d", len(state['bookmarks'][catalog_entry['tap_stream_id']]["BatchIDs"]))
+            singer.write_state(state)
+
     def _bulk_query_with_pk_chunking(self, catalog_entry, start_date):
-        LOGGER.info("Retrying Bulk Query with PK Chunking")
+        LOGGER.info(
+            "Attempting Bulk Query with PK Chunking for stream=%s start_date=%s chunk_size=%d",
+            catalog_entry['stream'],
+            start_date,
+            DEFAULT_CHUNK_SIZE,
+        )
+        self.check_bulk_quota_usage()
 
         # Create a new job
         job_id = self._create_job(catalog_entry, True)
+        LOGGER.info("Created PK chunked job_id=%s for stream=%s", job_id, catalog_entry['stream'])
 
         self._add_batch(catalog_entry, job_id, start_date, False)
 
@@ -166,7 +217,22 @@ class Bulk():
         batch_status['job_id'] = job_id
 
         if batch_status['failed']:
-            raise TapSalesforceException("One or more batches failed during PK chunked job")
+            self.check_bulk_quota_usage()
+            raise TapSalesforceException(
+                "One or more batches failed during PK chunked job {} for stream {}. "
+                "Failed batch IDs: {}".format(
+                    job_id,
+                    catalog_entry['stream'],
+                    batch_status['failed'],
+                )
+            )
+
+        LOGGER.info(
+            "PK chunked job %s completed successfully for stream=%s with %d batch(es)",
+            job_id,
+            catalog_entry['stream'],
+            len(batch_status['completed']),
+        )
 
         # Close the job after all the batches are complete
         self._close_job(job_id)
@@ -229,6 +295,9 @@ class Bulk():
             if not queued_batches and not in_progress_batches:
                 completed_batches = [b['id'] for b in batches if b['state'] == "Completed"]
                 failed_batches = [b['id'] for b in batches if b['state'] == "Failed"]
+                if failed_batches:
+                    self.check_bulk_quota_usage()
+                    self._log_failed_batch_details(job_id, batches)
                 return {'completed': completed_batches, 'failed': failed_batches}
             else:
                 time.sleep(PK_CHUNKED_BATCH_STATUS_POLLING_SLEEP)

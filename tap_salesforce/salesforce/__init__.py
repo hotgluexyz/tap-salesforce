@@ -228,7 +228,8 @@ class Salesforce():
                  api_type=None,
                  list_reports=False,
                  list_views=False,
-                 api_version=None):
+                 api_version=None,
+                 bulk_chunking=None):
         self.api_type = api_type.upper() if api_type else None
         self.refresh_token = refresh_token
         self.token = token
@@ -250,13 +251,13 @@ class Salesforce():
             quota_percent_total) if quota_percent_total is not None else 80
         self.is_sandbox = is_sandbox is True or (isinstance(is_sandbox, str) and is_sandbox.lower() == 'true')
         self.select_fields_by_default = select_fields_by_default is True or (isinstance(select_fields_by_default, str) and select_fields_by_default.lower() == 'true')
+        self.pk_chunking = bulk_chunking if bulk_chunking is not None else False
         self.default_start_date = default_start_date
         self.rest_requests_attempted = 0
         self.jobs_completed = 0
         self.login_timer = None
         self.version = api_version or "41.0"
         self.data_url = "{}/services/data/v" + self.version + "/{}"
-        self.pk_chunking = False
 
         # validate start_date
         singer_utils.strptime(default_start_date)
@@ -305,28 +306,7 @@ class Salesforce():
             headers["X-SFDC-Session"] = self.access_token
         self._thread_state.invalid_session_id_retry = False
 
-    # pylint: disable=too-many-arguments
-    @backoff.on_exception(backoff.expo,
-                          (ConnectionError, JSONDecodeError, RetriableError),
-                          max_tries=10,
-                          factor=2,
-                          on_backoff=log_backoff_attempt)
-    def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, hide_body_in_logs=False):
-        
-        if '/services/oauth2/token' not in url \
-            and getattr(self._thread_state, 'invalid_session_id_retry', False):
-            self._refresh_session_and_headers(headers)
-
-        if http_method == "GET":
-            LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
-            resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
-            LOGGER.info("Completed %s request to %s with params: %s", http_method, url, params)
-        elif http_method == "POST":
-            LOGGER.info("Making %s request to %s with body %s", http_method, url, body if not hide_body_in_logs else "**hidden**")
-            resp = self.session.post(url, headers=headers, data=body)
-        else:
-            raise TapSalesforceException("Unsupported HTTP method")
-
+    def validate_request(self, resp, url):
         try:
             resp.raise_for_status()
         except RequestException as ex:
@@ -352,6 +332,30 @@ class Salesforce():
                 raise TapSalesforceQuotaExceededException("{} Response: {}".format(ex, resp.text)) from ex
 
             raise ex
+
+    # pylint: disable=too-many-arguments
+    @backoff.on_exception(backoff.expo,
+                          (ConnectionError, JSONDecodeError, RetriableError),
+                          max_tries=10,
+                          factor=2,
+                          on_backoff=log_backoff_attempt)
+    def _make_request(self, http_method, url, headers=None, body=None, stream=False, params=None, validate_json=False, timeout=None, hide_body_in_logs=False):
+        
+        if '/services/oauth2/token' not in url \
+            and getattr(self._thread_state, 'invalid_session_id_retry', False):
+            self._refresh_session_and_headers(headers)
+
+        if http_method == "GET":
+            LOGGER.info("Making %s request to %s with params: %s", http_method, url, params)
+            resp = self.session.get(url, headers=headers, stream=stream, params=params, timeout=timeout)
+            LOGGER.info("Completed %s request to %s with params: %s", http_method, url, params)
+        elif http_method == "POST":
+            LOGGER.info("Making %s request to %s with body %s", http_method, url, body if not hide_body_in_logs else "**hidden**")
+            resp = self.session.post(url, headers=headers, data=body)
+        else:
+            raise TapSalesforceException("Unsupported HTTP method")
+
+        self.validate_request(resp, url)
 
         if resp.headers.get('Sforce-Limit-Info') is not None:
             self.rest_requests_attempted += 1

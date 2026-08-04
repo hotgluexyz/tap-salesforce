@@ -213,20 +213,20 @@ def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=to
 
     return property_schema, mdata
 
-def validate_auth_config(domain=None, refresh_token=None):
+def validate_auth_config(config):
     """The client_credentials grant is only supported on the org's My Domain."""
-    if not refresh_token and not domain:
+    if not config.get("refresh_token") and not config.get("domain"):
         raise InvalidCredentialsError(
             "The client_credentials grant requires a 'domain' set to your Salesforce My Domain URL.")
 
 def get_token_url(domain=None, is_sandbox=False):
     """Build the OAuth2 token endpoint. The client_credentials grant is only supported on the org's My Domain """
+    base_url = "https://login.salesforce.com"
     if domain:
-        base = domain if domain.startswith("http") else "https://" + domain
-        return "{}/services/oauth2/token".format(base.rstrip("/"))
-    if is_sandbox:
-        return "https://test.salesforce.com/services/oauth2/token"
-    return "https://login.salesforce.com/services/oauth2/token"
+        base_url = domain if domain.startswith("http") else "https://" + domain
+    elif is_sandbox:
+        base_url = "https://test.salesforce.com"
+    return "{}/services/oauth2/token".format(base_url.rstrip("/"))
 
 class Salesforce():
     # pylint: disable=too-many-instance-attributes,too-many-arguments
@@ -381,7 +381,7 @@ class Salesforce():
         return resp
 
     def login(self):
-        validate_auth_config(self.domain, self.refresh_token)
+        validate_auth_config({"domain": self.domain, "refresh_token": self.refresh_token})
         login_url = get_token_url(self.domain, self.is_sandbox)
 
         if self.grant_type == 'client_credentials':

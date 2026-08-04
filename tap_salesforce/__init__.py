@@ -753,8 +753,7 @@ class SalesforceTap(Tap):
         authenticator = SalesforceOAuthAuthenticator
         config = connector.config if connector and connector.config else {}
         if config:
-            tap_salesforce.salesforce.validate_auth_config(
-                config.get("domain"), config.get("refresh_token"))
+            tap_salesforce.salesforce.validate_auth_config(config)
         auth_endpoint = tap_salesforce.salesforce.get_token_url(
             config.get("domain"), cls._is_sandbox(config))
         return authenticator, auth_endpoint

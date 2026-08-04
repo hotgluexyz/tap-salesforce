@@ -213,6 +213,12 @@ def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=to
 
     return property_schema, mdata
 
+def validate_auth_config(domain=None, refresh_token=None):
+    """The client_credentials grant is only supported on the org's My Domain."""
+    if not refresh_token and not domain:
+        raise InvalidCredentialsError(
+            "The client_credentials grant requires a 'domain' set to your Salesforce My Domain URL.")
+
 def get_token_url(domain=None, is_sandbox=False):
     """Build the OAuth2 token endpoint. The client_credentials grant is only supported on the org's My Domain """
     if domain:
@@ -375,10 +381,7 @@ class Salesforce():
         return resp
 
     def login(self):
-        if self.grant_type == 'client_credentials' and not self.domain:
-            raise InvalidCredentialsError(
-                "The client_credentials grant requires a 'domain' set to your Salesforce My Domain URL.")
-
+        validate_auth_config(self.domain, self.refresh_token)
         login_url = get_token_url(self.domain, self.is_sandbox)
 
         if self.grant_type == 'client_credentials':

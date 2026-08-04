@@ -21,7 +21,7 @@ setup(name='tap-salesforce',
           'dev': [
               'pytest>=7.0.0',
               'pre-commit>=2.17.0',
-              'ruff>=0.1.0',
+              'ruff==0.15.20',
               'tox>=4.0.0',
           ]
       },

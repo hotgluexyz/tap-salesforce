@@ -213,6 +213,15 @@ def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=to
 
     return property_schema, mdata
 
+def get_token_url(domain=None, is_sandbox=False):
+    """Build the OAuth2 token endpoint. The client_credentials grant is only supported on the org's My Domain """
+    if domain:
+        base = domain if domain.startswith("http") else "https://" + domain
+        return "{}/services/oauth2/token".format(base.rstrip("/"))
+    if is_sandbox:
+        return "https://test.salesforce.com/services/oauth2/token"
+    return "https://login.salesforce.com/services/oauth2/token"
+
 class Salesforce():
     # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(self,
@@ -228,9 +237,12 @@ class Salesforce():
                  api_type=None,
                  list_reports=False,
                  list_views=False,
-                 api_version=None):
+                 api_version=None,
+                 domain=None):
         self.api_type = api_type.upper() if api_type else None
+        self.domain = domain
         self.refresh_token = refresh_token
+        self.grant_type = 'refresh_token' if refresh_token else 'client_credentials'
         self.token = token
         self.sf_client_id = sf_client_id
         self.sf_client_secret = sf_client_secret
@@ -363,13 +375,18 @@ class Salesforce():
         return resp
 
     def login(self):
-        if self.is_sandbox:
-            login_url = 'https://test.salesforce.com/services/oauth2/token'
-        else:
-            login_url = 'https://login.salesforce.com/services/oauth2/token'
+        if self.grant_type == 'client_credentials' and not self.domain:
+            raise InvalidCredentialsError(
+                "The client_credentials grant requires a 'domain' set to your Salesforce My Domain URL.")
 
-        login_body = {'grant_type': 'refresh_token', 'client_id': self.sf_client_id,
-                      'client_secret': self.sf_client_secret, 'refresh_token': self.refresh_token}
+        login_url = get_token_url(self.domain, self.is_sandbox)
+
+        if self.grant_type == 'client_credentials':
+            login_body = {'grant_type': 'client_credentials', 'client_id': self.sf_client_id,
+                          'client_secret': self.sf_client_secret}
+        else:
+            login_body = {'grant_type': 'refresh_token', 'client_id': self.sf_client_id,
+                          'client_secret': self.sf_client_secret, 'refresh_token': self.refresh_token}
 
         LOGGER.info("Attempting login via OAuth2")
 

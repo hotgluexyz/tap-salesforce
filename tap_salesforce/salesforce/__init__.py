@@ -213,6 +213,23 @@ def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=to
 
     return property_schema, mdata
 
+def validate_auth_config(config):
+    """The client_credentials grant is only supported on the org's My Domain."""
+    if not config.get("refresh_token") and not config.get("instance_url"):
+        raise InvalidCredentialsError(
+            "The client_credentials grant requires an 'instance_url' set to your Salesforce My Domain URL.")
+
+def get_token_url(instance_url=None, is_sandbox=False, refresh_token=None):
+    """Build the OAuth2 token endpoint. The client_credentials grant is only supported on the
+    org's My Domain, so instance_url is used for it. The refresh_token grant keeps using the
+    shared login hosts."""
+    base_url = "https://login.salesforce.com"
+    if not refresh_token and instance_url:
+        base_url = instance_url if instance_url.startswith("http") else "https://" + instance_url
+    elif is_sandbox:
+        base_url = "https://test.salesforce.com"
+    return "{}/services/oauth2/token".format(base_url.rstrip("/"))
+
 class Salesforce():
     # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(self,
@@ -228,16 +245,18 @@ class Salesforce():
                  api_type=None,
                  list_reports=False,
                  list_views=False,
-                 api_version=None):
+                 api_version=None,
+                 instance_url=None):
         self.api_type = api_type.upper() if api_type else None
         self.refresh_token = refresh_token
+        self.grant_type = 'refresh_token' if refresh_token else 'client_credentials'
         self.token = token
         self.sf_client_id = sf_client_id
         self.sf_client_secret = sf_client_secret
         self.session = requests.Session()
         self._thread_state = threading.local()
         self.access_token = None
-        self.instance_url = None
+        self.instance_url = instance_url
         self.list_reports = list_reports
         self.list_views= list_views
         if isinstance(quota_percent_per_run, str) and quota_percent_per_run.strip() == '':
@@ -363,13 +382,15 @@ class Salesforce():
         return resp
 
     def login(self):
-        if self.is_sandbox:
-            login_url = 'https://test.salesforce.com/services/oauth2/token'
-        else:
-            login_url = 'https://login.salesforce.com/services/oauth2/token'
+        validate_auth_config({"instance_url": self.instance_url, "refresh_token": self.refresh_token})
+        login_url = get_token_url(self.instance_url, self.is_sandbox, self.refresh_token)
 
-        login_body = {'grant_type': 'refresh_token', 'client_id': self.sf_client_id,
-                      'client_secret': self.sf_client_secret, 'refresh_token': self.refresh_token}
+        if self.grant_type == 'client_credentials':
+            login_body = {'grant_type': 'client_credentials', 'client_id': self.sf_client_id,
+                          'client_secret': self.sf_client_secret}
+        else:
+            login_body = {'grant_type': 'refresh_token', 'client_id': self.sf_client_id,
+                          'client_secret': self.sf_client_secret, 'refresh_token': self.refresh_token}
 
         LOGGER.info("Attempting login via OAuth2")
 

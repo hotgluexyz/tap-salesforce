@@ -718,7 +718,8 @@ class SalesforceTap(Tap):
     }
 
     config_jsonschema = th.PropertiesList(
-        th.Property("refresh_token", th.StringType, required=True),
+        th.Property("refresh_token", th.StringType),
+        th.Property("instance_url", th.StringType),
         th.Property("client_id", th.StringType, required=True),
         th.Property("client_secret", th.StringType, required=True),
         th.Property("start_date", th.StringType, required=True),
@@ -750,19 +751,17 @@ class SalesforceTap(Tap):
     def access_token_support(cls, connector=None):
         """Return authenticator class and auth endpoint for token refresh."""
         authenticator = SalesforceOAuthAuthenticator
-        auth_endpoint = "https://login.salesforce.com/services/oauth2/token"
-        
         config = connector.config if connector and connector.config else {}
-
-        if cls._is_sandbox(config):
-            auth_endpoint = 'https://test.salesforce.com/services/oauth2/token'
+        auth_endpoint = tap_salesforce.salesforce.get_token_url(
+            config.get("instance_url"), cls._is_sandbox(config), config.get("refresh_token"))
         return authenticator, auth_endpoint
 
     def _build_sf(self):
         config = dict(self.config)
         is_sandbox = self._is_sandbox(config)
         sf = Salesforce(
-            refresh_token=config['refresh_token'],
+            refresh_token=config.get('refresh_token'),
+            instance_url=config.get('instance_url'),
             sf_client_id=config['client_id'],
             sf_client_secret=config['client_secret'],
             quota_percent_total=config.get('quota_percent_total'),

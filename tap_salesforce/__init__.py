@@ -517,7 +517,7 @@ def do_discover(sf, config=None):  # noqa: C901
         if report_ids or report_names:
             reports = [
                 report for report in unfiltered_reports
-                if report['Id'] in report_ids or report['Name'] in report_names
+                if report['Id'] in report_ids or report['Name'] in report_names or report['DeveloperName'] in report_names
             ]
         else:
             reports = unfiltered_reports

@@ -514,10 +514,16 @@ def do_discover(sf, config=None):  # noqa: C901
         unfiltered_reports = get_reports_list(sf)
         report_ids = (config or {}).get('report_ids') or []
         report_names = (config or {}).get('report_names') or []
+        report_names_aliases = set()
+        for report_name in report_names:
+            report_names_aliases.add(report_name)
+            if report_name.startswith("Report_"):
+                report_names_aliases.add(report_name[len("Report_"):])
+            
         if report_ids or report_names:
             reports = [
                 report for report in unfiltered_reports
-                if report['Id'] in report_ids or report['Name'] in report_names or report['DeveloperName'] in report_names
+                if report['Id'] in report_ids or report['Name'] in report_names_aliases or report['DeveloperName'] in report_names_aliases
             ]
         else:
             reports = unfiltered_reports

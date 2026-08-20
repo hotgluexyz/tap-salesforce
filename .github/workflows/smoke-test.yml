@@ -27,6 +27,7 @@ jobs:
           repository: hotgluexyz/test-framework
           path: test-framework
           token: ${{ secrets.TEST_GITHUB_ACCESS_TOKEN }}
+          fetch-depth: 0
 
 
       - name: Set REPO_ROOT environment variable
@@ -47,7 +48,7 @@ jobs:
           cd test-framework
           # Try to switch to the same branch as the current PR
           BRANCH_NAME=${{ github.head_ref }}
-          if git show-ref --verify --quiet refs/heads/$BRANCH_NAME; then
+          if git show-ref --verify --quiet refs/remotes/origin/$BRANCH_NAME; then
             git checkout $BRANCH_NAME
           else
             git checkout main

@@ -275,10 +275,7 @@ class Salesforce():
         self.rest_requests_attempted = 0
         self.jobs_completed = 0
         self.login_timer = None
-        self.version = api_version or "41.0"
-        # Excel report download needs Analytics API v43.0+
-        if (discover_report_fields or report_ids) and float(self.version) < 43:
-            self.version = "43.0"
+        self.version = api_version or "61.0"
         self.data_url = "{}/services/data/v" + self.version + "/{}"
         self.pk_chunking = False
 

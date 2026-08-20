@@ -246,9 +246,7 @@ class Salesforce():
                  list_reports=False,
                  list_views=False,
                  api_version=None,
-                 instance_url=None,
-                 discover_report_fields=False,
-                 report_ids=None):
+                 instance_url=None):
         self.api_type = api_type.upper() if api_type else None
         self.refresh_token = refresh_token
         self.grant_type = 'refresh_token' if refresh_token else 'client_credentials'

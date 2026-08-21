@@ -617,7 +617,7 @@ def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_versio
             headers = row
             continue
         if headers:
-            if row[1].lower() == "total":
+            if row[1] is not None and str(row[1]).lower() == "total":
                 # end of data
                 return
             processed_row = {headers[i]: row[i] for i in range(len(headers)) if headers[i] is not None}

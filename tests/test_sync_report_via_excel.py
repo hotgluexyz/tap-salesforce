@@ -240,6 +240,35 @@ class TestSyncReportViaExcel:
         third_record = mock_write_message.call_args_list[2][0][0].record
         assert third_record["Name"] == "Deal 3"
         assert third_record["Status"] is None
+
+    @patch('tap_salesforce.sync.singer.write_message')
+    def test_sync_handles_null_first_column_value(self, mock_write_message, mock_sf_client,
+                                                  sample_catalog_entry, create_excel_file):
+        """Empty first report column must not crash the total-row check."""
+        header_row = (None, "Name", None, "Amount", "Status")
+        data_rows = [
+            (None, None, None, 1000, "Open"),
+            (None, None, None, 2000, "Closed"),
+        ]
+        excel_content = create_excel_file(header_row, data_rows)
+
+        mock_response = MagicMock()
+        mock_response.content = excel_content
+        mock_sf_client._make_request.return_value = mock_response
+
+        sync_report_via_excel(
+            mock_sf_client,
+            sample_catalog_entry,
+            "Report_TestReport",
+            None,
+            12345,
+            get_aware_datetime(),
+        )
+
+        assert mock_write_message.call_count == 2
+        first_record = mock_write_message.call_args_list[0][0][0].record
+        assert first_record["Name"] is None
+        assert first_record["Amount"] == 1000
     
     @patch('tap_salesforce.sync.singer.write_message')
     def test_sync_preserves_data_types(self, mock_write_message, mock_sf_client, sample_catalog_entry, create_excel_file):

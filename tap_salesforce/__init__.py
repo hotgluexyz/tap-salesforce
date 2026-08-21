@@ -224,6 +224,10 @@ def generate_schema(fields, sf, sobject_name, replication_key, config=None):  # 
 def generate_report_schema(fields, report):
     mdata = metadata.new()
     properties = {}
+    label_to_api_name = {
+        field_mdata["label"]: api_name
+        for api_name, field_mdata in fields.items()
+    }
     # Loop over the object's fields
     for field_mdata in fields.values():
         field_name = field_mdata["label"]
@@ -256,6 +260,7 @@ def generate_report_schema(fields, report):
             'name': report["Name"],
             'folder': report["FolderName"],
             'Id': report["Id"],
+            'labelToApiName': label_to_api_name,
         }
     }
 

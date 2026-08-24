@@ -29,6 +29,7 @@ REST_API_TYPE = "REST"
 STRING_TYPES = set([
     'id',
     'string',
+    'html',
     'picklist',
     'textarea',
     'phone',

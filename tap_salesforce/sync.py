@@ -4,10 +4,12 @@ import singer
 import singer.utils as singer_utils
 from singer import Transformer, metadata, metrics
 from requests.exceptions import RequestException
+from requests.exceptions import HTTPError
 from tap_salesforce.salesforce.bulk import Bulk
 import base64
 from io import BytesIO
 from openpyxl import load_workbook
+from tap_salesforce.salesforce.exceptions import TapSalesforceReportNotFoundException
 LOGGER = singer.get_logger()
 
 BLACKLISTED_FIELDS = set(['attributes'])
@@ -320,11 +322,19 @@ def get_report_record_ids_from_xlsx(sf, report_ids, stream):
 
                 LOGGER.info(f"Found {len(record_ids)} {stream} IDs from report {report_id}")
 
-            except Exception as e:
-                raise Exception(f"Error retrieving report {report_id}: {str(e)}")
+            except HTTPError as e:
+                if e.response is not None and e.response.status_code == 404:
+                    raise TapSalesforceReportNotFoundException(
+                        f"Error retrieving report {report_id}: {str(e)}"
+                    ) from e
+                raise
                 
     except Exception as e:
-        raise Exception(f"Error retrieving report data: {str(e)}")
+        if isinstance(e, TapSalesforceReportNotFoundException):
+            raise TapSalesforceReportNotFoundException(
+                f"Error retrieving report data: {str(e)}"
+            ) from e
+        raise
 
     return record_ids
 

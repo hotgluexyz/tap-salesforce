@@ -613,14 +613,23 @@ def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_versio
     first_field = next(iter(catalog_entry["schema"]["properties"]), None)
     for row in sheet.iter_rows(values_only=True):
         # look for the header row
-        if row[1] == first_field:
+        if headers is None and first_field in row:
+            index = row.index(first_field)
             headers = row
             continue
         if headers:
+            if row[1] is not None and str(row[1]).lower() == "subtotal":
+                #skip row
+                continue
             if row[1] is not None and str(row[1]).lower() == "total":
                 # end of data
                 return
-            processed_row = {headers[i]: row[i] for i in range(len(headers)) if headers[i] is not None}
+            if row[index-1] is not None and str(row[index-1]).lower() in ["sum", "count"]:
+                # Grouped SF exports can have Sum/Count labels in the column 
+                # just left of the first detail field (index-1).
+                # e.g. Subtotal→Sum, blank→Count. Skip those rows.
+                continue
+            processed_row = {headers[i]: row[i] for i in range(index,len(headers)) if headers[i] is not None}
             singer.write_message(
                 singer.RecordMessage(
                     stream=(

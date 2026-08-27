@@ -613,7 +613,7 @@ def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_versio
     first_field = next(iter(catalog_entry["schema"]["properties"]), None)
     for row in sheet.iter_rows(values_only=True):
         # look for the header row
-        if first_field in row:
+        if headers is None and first_field in row:
             index = row.index(first_field)
             headers = row
             continue

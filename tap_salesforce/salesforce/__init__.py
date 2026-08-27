@@ -1,3 +1,4 @@
+import json
 import re
 import threading
 import backoff
@@ -247,8 +248,12 @@ class Salesforce():
                  list_reports=False,
                  list_views=False,
                  api_version=None,
-                 instance_url=None):
+                 instance_url=None,
+                 tap_config=None,
+                 config_file=None):
         self.api_type = api_type.upper() if api_type else None
+        self._tap_config = tap_config
+        self._config_file = config_file
         self.refresh_token = refresh_token
         self.grant_type = 'refresh_token' if refresh_token else 'client_credentials'
         self.token = token
@@ -405,6 +410,13 @@ class Salesforce():
 
             self.access_token = auth['access_token']
             self.instance_url = auth['instance_url']
+            if auth.get("refresh_token"):
+                self.refresh_token = auth["refresh_token"]
+                if self._tap_config is not None:
+                    self._tap_config["refresh_token"] = auth["refresh_token"]
+                    if self._config_file:
+                        with open(self._config_file, "w") as f:
+                            json.dump(self._tap_config, f, indent=4)
         except Exception as e:
             error_message = str(e)
             if resp is None and hasattr(e, 'response') and e.response is not None: #pylint:disable=no-member

@@ -784,6 +784,8 @@ class SalesforceTap(Tap):
             list_reports=config.get('list_reports'),
             list_views=config.get('list_views'),
             api_version=config.get('api_version'),
+            tap_config=self._config,
+            config_file=self.config_file,
         )
         try:
             sf.login()

@@ -624,6 +624,11 @@ def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_versio
             if row[1] is not None and str(row[1]).lower() == "total":
                 # end of data
                 return
+            if row[index-1] is not None and str(row[index-1]).lower() in ["sum", "count"]:
+                # Grouped SF exports can have Sum/Count labels in the column 
+                # just left of the first detail field (index-1).
+                # e.g. Subtotal→Sum, blank→Count. Skip those rows.
+                continue
             processed_row = {headers[i]: row[i] for i in range(index,len(headers)) if headers[i] is not None}
             singer.write_message(
                 singer.RecordMessage(

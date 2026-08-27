@@ -613,14 +613,18 @@ def sync_report_via_excel(sf, catalog_entry, stream, stream_alias, stream_versio
     first_field = next(iter(catalog_entry["schema"]["properties"]), None)
     for row in sheet.iter_rows(values_only=True):
         # look for the header row
-        if row[1] == first_field:
+        if first_field in row:
+            index = row.index(first_field)
             headers = row
             continue
         if headers:
+            if row[1] is not None and str(row[1]).lower() == "subtotal":
+                #skip row
+                continue
             if row[1] is not None and str(row[1]).lower() == "total":
                 # end of data
                 return
-            processed_row = {headers[i]: row[i] for i in range(len(headers)) if headers[i] is not None}
+            processed_row = {headers[i]: row[i] for i in range(index,len(headers)) if headers[i] is not None}
             singer.write_message(
                 singer.RecordMessage(
                     stream=(

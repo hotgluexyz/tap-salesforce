@@ -9,7 +9,8 @@ from tap_salesforce.sync import (sync_stream, resume_syncing_bulk_query, get_str
 from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
-    TapSalesforceException, TapSalesforceBulkAPIDisabledException, TapSalesforceQuotaExceededException)
+    TapSalesforceException, TapSalesforceBulkAPIDisabledException,
+    TapSalesforceQuotaExceededException, RetriableError)
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from hotglue_singer_sdk.tap_base import Tap
 from hotglue_singer_sdk.helpers._util import read_json_file
@@ -313,15 +314,11 @@ def validate_report(sf, report, valid_reports):
     if report.get("IsDeleted"):
         return
 
-    # Describe report
     try:
         report_metadata = get_report_metadata(sf, report["Id"])
-    except RequestException as e:
-        if e.response.status_code in [403, 501]:
-            LOGGER.info(f"Unable to get metadata for report: '{report['Name']}'. response: {e.response.text}. Skipping!")
-            return
-        else:
-            raise e
+    except (RequestException, RetriableError):
+        LOGGER.info("Unable to get metadata for report: '%s'. Skipping!", report.get('Name'))
+        return
     
     columns = report_metadata.get('reportMetadata', {}).get('detailColumns', [])
     # multi block reports (grouped) don't have detailColumns, so columns could be None
@@ -539,7 +536,11 @@ def do_discover(sf, config=None):  # noqa: C901
         if reports:
             if config and config.get("discover_report_fields", False):
                 for report in reports:
-                    report_metadata = get_report_metadata(sf, report["Id"])
+                    try:
+                        report_metadata = get_report_metadata(sf, report["Id"])
+                    except (RequestException, RetriableError):
+                        LOGGER.info("Unable to get metadata for report: '%s'. Skipping!", report.get('Name'))
+                        continue
                     if report_metadata:
                         report_name = report["DeveloperName"]
                         fields = report_metadata.get("reportExtendedMetadata",{}).get("detailColumnInfo")

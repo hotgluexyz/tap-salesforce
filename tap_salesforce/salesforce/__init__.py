@@ -337,18 +337,13 @@ class Salesforce():
         if 500 <= resp.status_code < 600:
             raise RetriableError(ex)
 
-        is_fatal_org_403 = resp.status_code == 403 and (
-            "API_DISABLED_FOR_ORG" in resp.text
-            or "REQUEST_LIMIT_EXCEEDED" in resp.text
+        LOGGER.info(
+            "Unable to describe report at %s. status_code=%s. response: %s",
+            url,
+            resp.status_code,
+            resp.text,
         )
-        if not is_fatal_org_403:
-            LOGGER.info(
-                "Unable to describe report at %s. status_code=%s. response: %s",
-                url,
-                resp.status_code,
-                resp.text,
-            )
-            raise ex
+        raise ex
 
     def _handle_request_error(self, resp, ex, url):
         if ('InvalidSessionId' in resp.text

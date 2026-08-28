@@ -365,6 +365,22 @@ class Salesforce():
                 # Corrupted list view, skip it
                 LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
                 raise ex
+
+            if "/analytics/reports/" in url and url.endswith("/describe"):
+                if 500 <= resp.status_code < 600:
+                    raise RetriableError(ex)
+                if not (resp.status_code == 403 and (
+                    "API_DISABLED_FOR_ORG" in resp.text
+                    or "REQUEST_LIMIT_EXCEEDED" in resp.text
+                )):
+                    LOGGER.info(
+                        "Unable to describe report at %s. status_code=%s. response: %s",
+                        url,
+                        resp.status_code,
+                        resp.text,
+                    )
+                    raise ex
+
             if resp.status_code == 501 and "/analytics/reports" in url:
                 raise ex
             if 500 <= resp.status_code <600:

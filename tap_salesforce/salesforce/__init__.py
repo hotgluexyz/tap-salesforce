@@ -330,6 +330,52 @@ class Salesforce():
             headers["X-SFDC-Session"] = self.access_token
         self._thread_state.invalid_session_id_retry = False
 
+    def _handle_report_describe_error(self, resp, ex, url):
+        if "/analytics/reports/" not in url or not url.endswith("/describe"):
+            return
+
+        if 500 <= resp.status_code < 600:
+            raise RetriableError(ex)
+
+        is_fatal_org_403 = resp.status_code == 403 and (
+            "API_DISABLED_FOR_ORG" in resp.text
+            or "REQUEST_LIMIT_EXCEEDED" in resp.text
+        )
+        if not is_fatal_org_403:
+            LOGGER.info(
+                "Unable to describe report at %s. status_code=%s. response: %s",
+                url,
+                resp.status_code,
+                resp.text,
+            )
+            raise ex
+
+    def _handle_request_error(self, resp, ex, url):
+        if ('InvalidSessionId' in resp.text
+                or 'INVALID_SESSION_ID' in resp.text) \
+                and '/services/oauth2/token' not in url:
+            self._thread_state.invalid_session_id_retry = True
+            raise RetriableError(ex)
+
+        if resp.status_code == 500 and 'List view filter is not FilterByDynsql Context' in resp.text:
+            LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
+            raise ex
+
+        self._handle_report_describe_error(resp, ex, url)
+
+        if resp.status_code == 501 and "/analytics/reports" in url:
+            raise ex
+        if 500 <= resp.status_code < 600:
+            raise RetriableError(ex)
+
+        if resp.status_code == 403 and "API_DISABLED_FOR_ORG" in resp.text:
+            raise InvalidCredentialsError("{} Response: {}".format(ex, resp.text)) from ex
+
+        if resp.status_code == 403 and "REQUEST_LIMIT_EXCEEDED" in resp.text:
+            raise TapSalesforceQuotaExceededException("{} Response: {}".format(ex, resp.text)) from ex
+
+        raise ex
+
     # pylint: disable=too-many-arguments
     @backoff.on_exception(backoff.expo,
                           (ConnectionError, JSONDecodeError, RetriableError),
@@ -355,44 +401,7 @@ class Salesforce():
         try:
             resp.raise_for_status()
         except RequestException as ex:
-            if ('InvalidSessionId' in resp.text \
-                or 'INVALID_SESSION_ID' in resp.text) \
-                and '/services/oauth2/token' not in url:
-                self._thread_state.invalid_session_id_retry = True
-                raise RetriableError(ex)
-
-            if resp.status_code == 500 and 'List view filter is not FilterByDynsql Context' in resp.text:
-                # Corrupted list view, skip it
-                LOGGER.warning(f"Skipping list view {url} due to corrupted filter")
-                raise ex
-
-            if "/analytics/reports/" in url and url.endswith("/describe"):
-                if 500 <= resp.status_code < 600:
-                    raise RetriableError(ex)
-                if not (resp.status_code == 403 and (
-                    "API_DISABLED_FOR_ORG" in resp.text
-                    or "REQUEST_LIMIT_EXCEEDED" in resp.text
-                )):
-                    LOGGER.info(
-                        "Unable to describe report at %s. status_code=%s. response: %s",
-                        url,
-                        resp.status_code,
-                        resp.text,
-                    )
-                    raise ex
-
-            if resp.status_code == 501 and "/analytics/reports" in url:
-                raise ex
-            if 500 <= resp.status_code <600:
-                raise RetriableError(ex)
-
-            if resp.status_code == 403 and "API_DISABLED_FOR_ORG" in resp.text:
-                raise InvalidCredentialsError("{} Response: {}".format(ex, resp.text)) from ex
-
-            if resp.status_code == 403 and "REQUEST_LIMIT_EXCEEDED" in resp.text:
-                raise TapSalesforceQuotaExceededException("{} Response: {}".format(ex, resp.text)) from ex
-
-            raise ex
+            self._handle_request_error(resp, ex, url)
 
         if resp.headers.get('Sforce-Limit-Info') is not None:
             self.rest_requests_attempted += 1

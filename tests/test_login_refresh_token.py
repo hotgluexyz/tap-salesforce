@@ -123,6 +123,22 @@ def test_oauth_request_body_refresh_token_grant():
     assert auth.oauth_request_body["grant_type"] == "refresh_token"
 
 
+def test_oauth_request_body_uses_rotated_refresh_token_from_tap_config():
+    tap_config = {
+        "client_id": "cid",
+        "client_secret": "secret",
+        "refresh_token": "old-token",
+        "instance_url": INSTANCE,
+    }
+    auth = _authenticator(tap_config)
+    assert auth.config["refresh_token"] == "old-token"
+
+    tap_config["refresh_token"] = "new-token"
+
+    assert auth.config["refresh_token"] == "old-token"
+    assert auth.oauth_request_body["refresh_token"] == "new-token"
+
+
 def test_oauth_request_body_client_credentials_grant():
     auth = _authenticator({
         "client_id": "cid",

@@ -402,10 +402,9 @@ class Salesforce():
 
     def _apply_auth_from_config(self):
         """Copy tokens from authenticator / tap config onto this client."""
-        cfg = self._tap_config or {}
-        self.access_token = self._authenticator.access_token or cfg.get("access_token")
-        if cfg.get("refresh_token"):
-            self.refresh_token = cfg["refresh_token"]
+        self.access_token = self._authenticator.access_token
+        if self._tap_config.get("refresh_token"):
+            self.refresh_token = self._tap_config["refresh_token"]
 
     def login(self, force=False):
         """Obtain an access token via the SDK authenticator.

@@ -10,20 +10,20 @@ class SalesforceOAuthAuthenticator(OAuthAuthenticator):
 
     @property
     def oauth_request_body(self) -> dict:
-        if self.config.get("refresh_token"):
+        if self._tap._config.get("refresh_token"):
             return {
                 "grant_type": "refresh_token",
-                "client_id": self.config["client_id"],
-                "client_secret": self.config["client_secret"],
-                "refresh_token": self.config["refresh_token"],
+                "client_id": self._tap._config["client_id"],
+                "client_secret": self._tap._config["client_secret"],
+                "refresh_token": self._tap._config["refresh_token"],
             }
         return {
             "grant_type": "client_credentials",
-            "client_id": self.config["client_id"],
-            "client_secret": self.config["client_secret"],
+            "client_id": self._tap._config["client_id"],
+            "client_secret": self._tap._config["client_secret"],
         }
 
     def invalidate(self) -> None:
         """Force the next auth check to refresh (e.g. InvalidSessionId)."""
         self.last_refreshed = None
-        self.expires_in = None
+

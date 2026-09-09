@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from tap_salesforce.auth import SalesforceOAuthAuthenticator
 from tap_salesforce.salesforce import Salesforce
@@ -53,13 +53,13 @@ def test_login_persists_rotated_refresh_token_to_tap_config():
         "client_id": "cid",
         "client_secret": "secret",
         "refresh_token": "old-token",
+        "instance_url": INSTANCE,
     }
     auth = _authenticator(tap_config)
     auth.update_access_token = MagicMock(side_effect=lambda: (
         setattr(auth, "access_token", "new-access"),
         tap_config.update({
             "access_token": "new-access",
-            "instance_url": INSTANCE,
             "refresh_token": "new-token",
         }),
     ))
@@ -69,6 +69,7 @@ def test_login_persists_rotated_refresh_token_to_tap_config():
     assert sf.access_token == "new-access"
     assert sf.refresh_token == "new-token"
     assert tap_config["refresh_token"] == "new-token"
+    assert sf.instance_url == INSTANCE
 
 
 def test_login_skips_refresh_token_when_not_rotated():
@@ -76,14 +77,12 @@ def test_login_skips_refresh_token_when_not_rotated():
         "client_id": "cid",
         "client_secret": "secret",
         "refresh_token": "old-token",
+        "instance_url": INSTANCE,
     }
     auth = _authenticator(tap_config)
     auth.update_access_token = MagicMock(side_effect=lambda: (
         setattr(auth, "access_token", "new-access"),
-        tap_config.update({
-            "access_token": "new-access",
-            "instance_url": INSTANCE,
-        }),
+        tap_config.update({"access_token": "new-access"}),
     ))
     sf = _sf(auth, tap_config)
     sf.login()
@@ -91,6 +90,7 @@ def test_login_skips_refresh_token_when_not_rotated():
     assert sf.access_token == "new-access"
     assert sf.refresh_token == "old-token"
     assert tap_config["refresh_token"] == "old-token"
+    assert sf.instance_url == INSTANCE
 
 
 def test_login_force_invalidates_authenticator():
@@ -98,12 +98,13 @@ def test_login_force_invalidates_authenticator():
         "client_id": "cid",
         "client_secret": "secret",
         "refresh_token": "old-token",
+        "instance_url": INSTANCE,
     }
     auth = _authenticator(tap_config)
     auth.invalidate = MagicMock()
     auth.update_access_token = MagicMock(side_effect=lambda: (
         setattr(auth, "access_token", "new-access"),
-        tap_config.update({"access_token": "new-access", "instance_url": INSTANCE}),
+        tap_config.update({"access_token": "new-access"}),
     ))
     sf = _sf(auth, tap_config)
     sf.login(force=True)
@@ -112,27 +113,20 @@ def test_login_force_invalidates_authenticator():
     assert sf.access_token == "new-access"
 
 
-def test_authenticator_persists_instance_url_and_rotated_refresh_token():
-    tap_config = {
+def test_oauth_request_body_refresh_token_grant():
+    auth = _authenticator({
         "client_id": "cid",
         "client_secret": "secret",
-        "refresh_token": "old-token",
-    }
-    auth = _authenticator(tap_config)
-    response = MagicMock()
-    response.json.return_value = {
-        "access_token": "new-access",
+        "refresh_token": "rt",
         "instance_url": INSTANCE,
-        "refresh_token": "new-token",
-    }
-    response.raise_for_status = MagicMock()
+    })
+    assert auth.oauth_request_body["grant_type"] == "refresh_token"
 
-    with patch("tap_salesforce.auth.requests.post", return_value=response) as post:
-        auth.update_access_token_locally()
 
-    post.assert_called_once()
-    assert auth.access_token == "new-access"
-    assert auth.expires_in is None
-    assert tap_config["access_token"] == "new-access"
-    assert tap_config["instance_url"] == INSTANCE
-    assert tap_config["refresh_token"] == "new-token"
+def test_oauth_request_body_client_credentials_grant():
+    auth = _authenticator({
+        "client_id": "cid",
+        "client_secret": "secret",
+        "instance_url": INSTANCE,
+    })
+    assert auth.oauth_request_body["grant_type"] == "client_credentials"

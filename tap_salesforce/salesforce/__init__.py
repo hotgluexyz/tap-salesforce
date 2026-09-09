@@ -212,12 +212,6 @@ def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=to
 
     return property_schema, mdata
 
-def validate_auth_config(config):
-    """The client_credentials grant is only supported on the org's My Domain."""
-    if not config.get("refresh_token") and not config.get("instance_url"):
-        raise InvalidCredentialsError(
-            "The client_credentials grant requires an 'instance_url' set to your Salesforce My Domain URL.")
-
 def get_token_url(instance_url=None, is_sandbox=False, refresh_token=None):
     """Build the OAuth2 token endpoint. The client_credentials grant is only supported on the
     org's My Domain, so instance_url is used for it. The refresh_token grant keeps using the
@@ -410,8 +404,6 @@ class Salesforce():
         """Copy tokens from authenticator / tap config onto this client."""
         cfg = self._tap_config or {}
         self.access_token = self._authenticator.access_token or cfg.get("access_token")
-        if cfg.get("instance_url"):
-            self.instance_url = cfg["instance_url"]
         if cfg.get("refresh_token"):
             self.refresh_token = cfg["refresh_token"]
 
@@ -425,10 +417,6 @@ class Salesforce():
             raise TapSalesforceException(
                 "Salesforce client requires an OAuth authenticator for login")
 
-        validate_auth_config({
-            "instance_url": self.instance_url,
-            "refresh_token": self.refresh_token,
-        })
         LOGGER.info("Attempting login via OAuth2")
         try:
             if force:

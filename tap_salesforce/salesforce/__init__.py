@@ -315,7 +315,7 @@ class Salesforce():
     def _refresh_session_and_headers(self, headers):
         """Exchange refresh_token for a new access_token and update request headers."""
         LOGGER.info("Invalid session detected, refreshing OAuth token before retry")
-        self.login(force=True)
+        self.login()
         if "Authorization" in headers:
             headers["Authorization"] = f"Bearer {self.access_token}"
         if "X-SFDC-Session" in headers:
@@ -405,19 +405,16 @@ class Salesforce():
         if self._tap_config.get("refresh_token"):
             self.refresh_token = self._tap_config["refresh_token"]
 
-    def login(self, force=False):
+    def login(self):
         """Obtain an access token via the SDK authenticator.
 
-        Initial login always refreshes. Mid-sync refresh uses force=True on
-        InvalidSessionId (token lifetimes vary by org; do not poll on a timer).
+        Always refreshes (initial login and InvalidSessionId retry).
         """
         if self._authenticator is None:
             raise TapSalesforceException(
                 "Salesforce client requires an OAuth authenticator for login")
 
         LOGGER.info("Attempting login via OAuth2")
-        if force:
-            self._authenticator.invalidate()
         self._authenticator.update_access_token()
         self._apply_auth_from_config()
         LOGGER.info("OAuth2 login successful")

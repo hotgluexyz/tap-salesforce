@@ -93,26 +93,6 @@ def test_login_skips_refresh_token_when_not_rotated():
     assert sf.instance_url == INSTANCE
 
 
-def test_login_force_invalidates_authenticator():
-    tap_config = {
-        "client_id": "cid",
-        "client_secret": "secret",
-        "refresh_token": "old-token",
-        "instance_url": INSTANCE,
-    }
-    auth = _authenticator(tap_config)
-    auth.invalidate = MagicMock()
-    auth.update_access_token = MagicMock(side_effect=lambda: (
-        setattr(auth, "access_token", "new-access"),
-        tap_config.update({"access_token": "new-access"}),
-    ))
-    sf = _sf(auth, tap_config)
-    sf.login(force=True)
-
-    auth.invalidate.assert_called_once_with()
-    assert sf.access_token == "new-access"
-
-
 def test_oauth_request_body_refresh_token_grant():
     auth = _authenticator({
         "client_id": "cid",

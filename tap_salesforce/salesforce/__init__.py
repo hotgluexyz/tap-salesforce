@@ -417,16 +417,12 @@ class Salesforce():
                 "Salesforce client requires an OAuth authenticator for login")
 
         LOGGER.info("Attempting login via OAuth2")
-        try:
-            if force:
-                self._authenticator.invalidate()
-            self._authenticator.update_access_token()
-            self._apply_auth_from_config()
-            LOGGER.info("OAuth2 login successful")
-        except InvalidCredentialsError:
-            raise
-        except Exception as e:
-            raise InvalidCredentialsError(str(e)) from e
+        if force:
+            self._authenticator.invalidate()
+        self._authenticator.update_access_token()
+        self._apply_auth_from_config()
+        LOGGER.info("OAuth2 login successful")
+        
 
 
     def describe(self, sobject=None):

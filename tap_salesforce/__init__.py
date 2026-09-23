@@ -768,9 +768,26 @@ class SalesforceTap(Tap):
             config.get("instance_url"), cls._is_sandbox(config), config.get("refresh_token"))
         return authenticator, auth_endpoint
 
+    def _build_authenticator(self):
+        auth_cls, auth_endpoint = type(self).access_token_support(self)
+
+        class _AuthStream:
+            def __init__(self, tap):
+                self._tap = tap
+                self.logger = tap.logger
+                self.tap_name = tap.name
+                self.config = tap.config
+
+        return auth_cls(
+            stream=_AuthStream(self),
+            auth_endpoint=auth_endpoint,
+            config_file=self.config_file,
+        )
+
     def _build_sf(self):
         config = dict(self.config)
         is_sandbox = self._is_sandbox(config)
+        authenticator = self._build_authenticator()
         sf = Salesforce(
             refresh_token=config.get('refresh_token'),
             instance_url=config.get('instance_url'),
@@ -787,6 +804,7 @@ class SalesforceTap(Tap):
             api_version=config.get('api_version'),
             tap_config=self._config,
             config_file=self.config_file,
+            authenticator=authenticator,
         )
         try:
             sf.login()

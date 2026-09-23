@@ -1,4 +1,3 @@
-import json
 import re
 import threading
 import backoff
@@ -20,9 +19,6 @@ from tap_salesforce.salesforce.exceptions import (
 
 LOGGER = singer.get_logger()
 logging.getLogger('backoff').setLevel(logging.CRITICAL)
-
-# The minimum expiration setting for SF Refresh Tokens is 15 minutes
-REFRESH_TOKEN_EXPIRATION_PERIOD = 900
 
 BULK_API_TYPE = "BULK"
 REST_API_TYPE = "REST"
@@ -215,12 +211,6 @@ def field_to_property_schema(field, mdata, is_report=False): # pylint:disable=to
 
     return property_schema, mdata
 
-def validate_auth_config(config):
-    """The client_credentials grant is only supported on the org's My Domain."""
-    if not config.get("refresh_token") and not config.get("instance_url"):
-        raise InvalidCredentialsError(
-            "The client_credentials grant requires an 'instance_url' set to your Salesforce My Domain URL.")
-
 def get_token_url(instance_url=None, is_sandbox=False, refresh_token=None):
     """Build the OAuth2 token endpoint. The client_credentials grant is only supported on the
     org's My Domain, so instance_url is used for it. The refresh_token grant keeps using the
@@ -250,10 +240,12 @@ class Salesforce():
                  api_version=None,
                  instance_url=None,
                  tap_config=None,
-                 config_file=None):
+                 config_file=None,
+                 authenticator=None):
         self.api_type = api_type.upper() if api_type else None
         self._tap_config = tap_config
         self._config_file = config_file
+        self._authenticator = authenticator
         self.refresh_token = refresh_token
         self.grant_type = 'refresh_token' if refresh_token else 'client_credentials'
         self.token = token
@@ -407,50 +399,27 @@ class Salesforce():
         
         return resp
 
-    def login(self):
-        validate_auth_config({"instance_url": self.instance_url, "refresh_token": self.refresh_token})
-        login_url = get_token_url(self.instance_url, self.is_sandbox, self.refresh_token)
+    def _apply_auth_from_config(self):
+        """Copy tokens from authenticator / tap config onto this client."""
+        self.access_token = self._authenticator.access_token
+        if self._tap_config.get("refresh_token"):
+            self.refresh_token = self._tap_config["refresh_token"]
 
-        if self.grant_type == 'client_credentials':
-            login_body = {'grant_type': 'client_credentials', 'client_id': self.sf_client_id,
-                          'client_secret': self.sf_client_secret}
-        else:
-            login_body = {'grant_type': 'refresh_token', 'client_id': self.sf_client_id,
-                          'client_secret': self.sf_client_secret, 'refresh_token': self.refresh_token}
+    def login(self):
+        """Obtain an access token via the SDK authenticator.
+
+        Always refreshes (initial login and InvalidSessionId retry).
+        """
+        if self._authenticator is None:
+            raise TapSalesforceException(
+                "Salesforce client requires an OAuth authenticator for login")
 
         LOGGER.info("Attempting login via OAuth2")
+        self._authenticator.update_access_token()
+        self._apply_auth_from_config()
+        LOGGER.info("OAuth2 login successful")
+        
 
-        resp = None
-        try:
-            resp = self._make_request("POST", login_url, body=login_body, headers={"Content-Type": "application/x-www-form-urlencoded"}, hide_body_in_logs=True)
-
-            LOGGER.info("OAuth2 login successful")
-
-            auth = resp.json()
-
-            self.access_token = auth['access_token']
-            self.instance_url = auth['instance_url']
-            if auth.get("refresh_token"):
-                self.refresh_token = auth["refresh_token"]
-                if self._tap_config is not None:
-                    self._tap_config["refresh_token"] = auth["refresh_token"]
-                    if self._config_file:
-                        with open(self._config_file, "w") as f:
-                            json.dump(self._tap_config, f, indent=4)
-        except Exception as e:
-            error_message = str(e)
-            if resp is None and hasattr(e, 'response') and e.response is not None: #pylint:disable=no-member
-                resp = e.response #pylint:disable=no-member
-            # NB: requests.models.Response is always falsy here. It is false if status code >= 400
-            if isinstance(resp, requests.models.Response):
-                error_message = error_message + ", Response from Salesforce: {}".format(resp.text)
-            raise InvalidCredentialsError(error_message) from e
-        finally:
-            if self.login_timer is not None:
-                self.login_timer.cancel()
-            LOGGER.info("Starting new login timer")
-            self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD, self.login)
-            self.login_timer.start()
 
     def describe(self, sobject=None):
         """Describes all objects or a specific object"""

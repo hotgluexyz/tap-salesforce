@@ -1,6 +1,5 @@
 from hotglue_singer_sdk.authenticators import OAuthAuthenticator
 
-from tap_salesforce.salesforce import validate_auth_config
 
 class SalesforceOAuthAuthenticator(OAuthAuthenticator):
     """OAuth authenticator for Salesforce API.
@@ -10,16 +9,16 @@ class SalesforceOAuthAuthenticator(OAuthAuthenticator):
 
     @property
     def oauth_request_body(self) -> dict:
-        validate_auth_config(self.config)
-        if self.config.get("refresh_token"):
+        if self._tap._config.get("refresh_token"):
             return {
                 "grant_type": "refresh_token",
-                "client_id": self.config["client_id"],
-                "client_secret": self.config["client_secret"],
-                "refresh_token": self.config["refresh_token"],
+                "client_id": self._tap._config["client_id"],
+                "client_secret": self._tap._config["client_secret"],
+                "refresh_token": self._tap._config["refresh_token"],
             }
         return {
             "grant_type": "client_credentials",
-            "client_id": self.config["client_id"],
-            "client_secret": self.config["client_secret"],
+            "client_id": self._tap._config["client_id"],
+            "client_secret": self._tap._config["client_secret"],
         }
+

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import sys
+from typing import List
 import singer
 from singer import metadata, metrics
 import tap_salesforce.salesforce
@@ -27,6 +28,30 @@ FORCED_FULL_TABLE = {
     'BackgroundOperationResult', # Does not support ordering by CreatedDate
     'LoginEvent', # Does not support ordering by CreatedDate
 }
+
+# DISPLAY list for the connector landing page:
+COMMON_SALESFORCE_OBJECTS = [
+    'Account',
+    'Asset',
+    'Campaign',
+    'CampaignMember',
+    'Case',
+    'Contact',
+    'Contract',
+    'EmailMessage',
+    'Event',
+    'Lead',
+    'Opportunity',
+    'OpportunityContactRole',
+    'OpportunityLineItem',
+    'Order',
+    'OrderItem',
+    'Pricebook2',
+    'PricebookEntry',
+    'Product2',
+    'Task',
+    'User',
+]
 
 def get_replication_key(sobject_name, fields):
     if sobject_name in FORCED_FULL_TABLE:
@@ -828,6 +853,11 @@ class SalesforceTap(Tap):
 
     def discover_streams(self):
         return []
+
+    @classmethod
+    def _get_supported_stream_names(cls) -> List[str]:
+        """Return the curated object list for `--about`."""
+        return sorted(COMMON_SALESFORCE_OBJECTS)
 
     def run_discovery(self):
         sf = None

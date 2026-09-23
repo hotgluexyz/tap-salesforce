@@ -14,7 +14,7 @@ setup(name='tap-salesforce',
           'pipelinewise-singer-python==1.2.0',
           'xmltodict==0.11.0',
           'openpyxl==3.1.3',
-          'hotglue-singer-sdk>=1.0.15,<2.0.0',
+          'hotglue-singer-sdk>=1.0.46,<2.0.0',
           'hotglue-etl-exceptions>=0.1.0'
       ],
       extras_require={

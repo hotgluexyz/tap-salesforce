@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import json
 import sys
-from typing import List
 import singer
 from singer import metadata, metrics
 import tap_salesforce.salesforce
@@ -748,6 +747,11 @@ def do_sync(sf, catalog, state,config=None):
 class SalesforceTap(Tap):
     name = "tap-salesforce"
 
+    # Catalog is built at discover time from sf.describe(), so `--about` reports
+    # the curated list below instead of attempting discovery without credentials.
+    dynamic_catalog = True
+    static_stream_names = COMMON_SALESFORCE_OBJECTS
+
     alerting_level = AlertingLevel.WARNING
     exception_alerting_level_map = {
         TapSalesforceQuotaExceededException: AlertingLevel.NONE,
@@ -853,11 +857,6 @@ class SalesforceTap(Tap):
 
     def discover_streams(self):
         return []
-
-    @classmethod
-    def _get_supported_stream_names(cls) -> List[str]:
-        """Return the curated object list for `--about`."""
-        return sorted(COMMON_SALESFORCE_OBJECTS)
 
     def run_discovery(self):
         sf = None

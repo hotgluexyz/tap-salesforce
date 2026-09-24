@@ -748,7 +748,7 @@ class SalesforceTap(Tap):
     name = "tap-salesforce"
 
     # Catalog is built at discover time from sf.describe(), so `--about` reports
-    # the curated list below instead of attempting discovery without credentials.
+    # the curated list below instead of attempting discovery without credentials
     dynamic_catalog = True
     static_stream_names = COMMON_SALESFORCE_OBJECTS
 

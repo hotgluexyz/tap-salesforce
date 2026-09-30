@@ -28,6 +28,30 @@ FORCED_FULL_TABLE = {
     'LoginEvent', # Does not support ordering by CreatedDate
 }
 
+# DISPLAY list for the connector landing page:
+COMMON_SALESFORCE_OBJECTS = [
+    'Account',
+    'Asset',
+    'Campaign',
+    'CampaignMember',
+    'Case',
+    'Contact',
+    'Contract',
+    'EmailMessage',
+    'Event',
+    'Lead',
+    'Opportunity',
+    'OpportunityContactRole',
+    'OpportunityLineItem',
+    'Order',
+    'OrderItem',
+    'Pricebook2',
+    'PricebookEntry',
+    'Product2',
+    'Task',
+    'User',
+]
+
 def get_replication_key(sobject_name, fields):
     if sobject_name in FORCED_FULL_TABLE:
         return None
@@ -722,6 +746,11 @@ def do_sync(sf, catalog, state,config=None):
 
 class SalesforceTap(Tap):
     name = "tap-salesforce"
+
+    # Catalog is built at discover time from sf.describe(), so `--about` reports
+    # the curated list below instead of attempting discovery without credentials.
+    dynamic_catalog = True
+    static_stream_names = COMMON_SALESFORCE_OBJECTS
 
     alerting_level = AlertingLevel.WARNING
     exception_alerting_level_map = {

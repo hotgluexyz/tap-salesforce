@@ -440,11 +440,13 @@ class Salesforce():
             timer.tags['endpoint'] = endpoint_tag
             try:
                 resp = self._make_request('GET', url, headers=headers, timeout=(5*60))
+            except TapSalesforceQuotaExceededException:
+                raise
             except Exception:
                 if sobject is None:
                     LOGGER.exception("Failed to describe sobjects!")
-                else:
-                    LOGGER.warning(f"Failed to describe SObject {sobject}")
+                    raise
+                LOGGER.warning(f"Failed to describe SObject {sobject}")
                 return None
 
         return resp.json()

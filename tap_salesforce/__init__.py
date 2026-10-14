@@ -5,7 +5,10 @@ import singer
 from singer import metadata, metrics
 import tap_salesforce.salesforce
 from requests.exceptions import RequestException, HTTPError
-from tap_salesforce.sync import (sync_stream, resume_syncing_bulk_query, get_stream_version, ACTIVITY_STREAMS)
+from tap_salesforce.sync import (
+    sync_stream, resume_syncing_bulk_query, get_stream_version, ACTIVITY_STREAMS,
+    is_custom_report,
+)
 from tap_salesforce.salesforce import Salesforce
 from tap_salesforce.salesforce.bulk import Bulk
 from tap_salesforce.salesforce.exceptions import (
@@ -855,6 +858,44 @@ class SalesforceTap(Tap):
             if sf.login_timer:
                 sf.login_timer.cancel()
 
+    def _emit_estimated_record_totals_snapshot(self, sf, catalog, state, config):
+        """Emit pre-sync counts for streams that use the standard object query."""
+        started = False
+        for catalog_entry in catalog['streams']:
+            stream = catalog_entry['stream']
+            stream_metadata = metadata.to_map(catalog_entry['metadata'])
+            is_filtered_contact_or_lead = (
+                stream in ('Contact', 'Lead')
+                and any(config.get(key) for key in ('list_ids', 'campaign_ids', 'report_ids'))
+            )
+            has_resumable_bulk_job = singer.get_bookmark(
+                state, catalog_entry['tap_stream_id'], 'JobID')
+
+            if (
+                not stream_is_selected(stream_metadata)
+                or is_custom_report(catalog_entry)
+                or stream in ('ListView', 'ListViews')
+                or stream in ACTIVITY_STREAMS
+                or is_filtered_contact_or_lead
+                or has_resumable_bulk_job
+            ):
+                continue
+
+            count = sf.get_estimated_record_count(catalog_entry, state)
+            if count is None:
+                continue
+
+            if not started:
+                LOGGER.info("Starting estimated record totals snapshot.")
+                started = True
+
+            stream_name = catalog_entry.get('stream_alias') or stream
+            LOGGER.info("Estimated records for stream='%s': %s", stream_name, count)
+            self._write_estimated_total_metric(stream_name, count)
+
+        if started:
+            LOGGER.info("Finished estimated record totals snapshot.")
+
     def discover_streams(self):
         return []
 
@@ -884,6 +925,8 @@ class SalesforceTap(Tap):
         sf = None
         try:
             sf = self._build_sf()
+            self._emit_estimated_record_totals_snapshot(
+                sf, catalog_dict, built_state, config)
             do_sync(sf, catalog_dict, built_state, config)
         finally:
             self._sf_cleanup(sf)

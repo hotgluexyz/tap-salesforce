@@ -528,7 +528,12 @@ class Salesforce():
         url = self.data_url.format(self.instance_url, "queryAll")
         try:
             response = self._make_request(
-                'GET', url, headers=self._get_standard_headers(), params={'q': query})
+                'GET',
+                url,
+                headers=self._get_standard_headers(),
+                params={'q': query},
+                timeout=(10, 60),
+            )
             count = response.json().get('totalSize')
             return count if isinstance(count, int) else None
         except Exception as ex:  # pylint: disable=broad-exception-caught

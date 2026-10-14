@@ -32,6 +32,7 @@ def test_estimated_record_count_uses_sync_bookmark_filter():
     assert sf._make_request.call_args.kwargs["params"] == {
         "q": "SELECT COUNT() FROM Account WHERE SystemModstamp > 2024-01-01T00:00:00Z"
     }
+    assert sf._make_request.call_args.kwargs["timeout"] == (10, 60)
 
 
 def test_estimated_record_count_soft_fails_for_invalid_response():

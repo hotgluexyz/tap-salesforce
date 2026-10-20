@@ -517,6 +517,33 @@ class Salesforce():
         else:
             return query
 
+    def get_estimated_record_count(self, catalog_entry, state):
+        """Return a count for an ordinary object using its sync bookmark filter."""
+        start_date = self.get_start_date(state, catalog_entry)
+        catalog_metadata = metadata.to_map(catalog_entry['metadata'])
+        replication_key = catalog_metadata.get((), {}).get('replication-key')
+
+        query = "SELECT COUNT() FROM {}".format(catalog_entry['stream'])
+        if replication_key:
+            query += " WHERE {} > {}".format(replication_key, start_date)
+
+        url = self.data_url.format(self.instance_url, "queryAll")
+        try:
+            response = self._make_request(
+                'GET',
+                url,
+                headers=self._get_standard_headers(),
+                params={'q': query},
+                timeout=(10, 60),
+            )
+            count = response.json().get('totalSize')
+            return count if isinstance(count, int) else None
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            LOGGER.warning(
+                "Could not estimate record count for %s: %s",
+                catalog_entry['stream'], ex)
+            return None
+
     def query(self, catalog_entry, state, query_override=None):
         if state["bookmarks"].get("ListView"):
             if state["bookmarks"]["ListView"].get("SystemModstamp"):

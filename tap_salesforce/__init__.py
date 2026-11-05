@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 import json
+import logging
 import sys
+
+import singer.logger as _singer_logger
+
+
+def _get_logger():
+    if not logging.root.handlers:
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    return logging.getLogger()
+
+
+_singer_logger.get_logger = _get_logger
+
 import singer
 from singer import metadata, metrics
 import tap_salesforce.salesforce

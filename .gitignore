@@ -1,4 +1,6 @@
 .secrets
+__smoke-tests__/**/test_runtime/
+__smoke-tests__/unsanitized_*_test/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -99,6 +101,7 @@ ENV/
 # Custom stuff
 env.sh
 config.json
+!__smoke-tests__/*_test/config.json
 .autoenv.zsh
 
 *~

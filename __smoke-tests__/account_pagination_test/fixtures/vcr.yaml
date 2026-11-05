@@ -1,0 +1,428 @@
+interactions:
+- request:
+    body: grant_type=refresh_token
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '24'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - python-requests/2.29.0
+    method: POST
+    uri: https://login.salesforce.com/services/oauth2/token
+  response:
+    body:
+      string: '{"access_token": "00D***", "signature": "-Fallback-scrubbed-ECrWqzFlPeYSTyGInoxqFJvSzayknOuhgPpSgYUiIDYgfnLbPKdNpNYNrYkpYLZ",
+        "scope": "-Fallback-scrubbed-rPCjiaExsLBHeTUPvNgZvJNNHmkEptQjVbGTLmDbt", "instance_url":
+        "-Fallback-scrubbed-FImCxjBbdKrDvjlJMurlIPwnReSmmXctSnMdvoxNbZjngwJefRsDlIQFvrCOkYJZYUyb",
+        "id": "-Fallback-scrubbed-NcGflDPYtnzwBGnwgvXKZUObLPEjRDlvskCOfYJxnespygnECsEtCZRhIrhwkSDgXrvIxVcEMrVIZISJZBPYArpP",
+        "token_type": "-Fallback-scrubbed-SoDUjDYBvgjuOpIlmBVGUkgsj", "issued_at":
+        "175"}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 05 Nov 2026 20:13:01 GMT
+      Server:
+      - sfdcedge
+      Transfer-Encoding:
+      - chunked
+      X-Request-Id:
+      - c85b151c27fe4afa63b1bc53dafc3302
+      X-SFDC-Edge-Cache:
+      - none
+      X-SFDC-Request-Id:
+      - c85b151c27fe4afa63b1bc53dafc3302
+      cache-control:
+      - no-cache,must-revalidate,max-age=0,no-store,private
+      content-length:
+      - '504'
+      expires:
+      - Thu, 01 Jan 1970 00:00:00 GMT
+      permissions-policy:
+      - unload=*
+      - unload=*
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-sfdc-trace-flags:
+      - '01'
+      - '01'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.29.0
+    method: GET
+    uri: https://salesforce.example.com/services/data/v61.0/queryAll?q=SELECT+COUNT%28%29+FROM+Account+WHERE+SystemModstamp+%3E+2026-10-26T00%3A00%3A00Z
+  response:
+    body:
+      string: '{"totalSize": 2, "done": true, "records": []}'
+    headers:
+      Cache-Control:
+      - no-cache,must-revalidate,max-age=0,no-store,private
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 05 Nov 2026 20:13:02 GMT
+      Permissions-Policy:
+      - unload=*
+      Sforce-Limit-Info:
+      - api-usage=989/15000
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      X-Content-Type-Options:
+      - nosniff
+      X-Robots-Tag:
+      - none
+      content-length:
+      - '45'
+      x-sfdc-trace-flags:
+      - '01'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.29.0
+    method: GET
+    uri: https://salesforce.example.com/services/data/v61.0/queryAll?q=SELECT+Id%2CIsDeleted%2CMasterRecordId%2CName%2CLastName%2CFirstName%2CSalutation%2CType%2CRecordTypeId%2CParentId%2CBillingStreet%2CBillingCity%2CBillingState%2CBillingPostalCode%2CBillingCountry%2CBillingLatitude%2CBillingLongitude%2CBillingGeocodeAccuracy%2CShippingStreet%2CShippingCity%2CShippingState%2CShippingPostalCode%2CShippingCountry%2CShippingLatitude%2CShippingLongitude%2CShippingGeocodeAccuracy%2CPhone%2CFax%2CAccountNumber%2CWebsite%2CPhotoUrl%2CSic%2CIndustry%2CAnnualRevenue%2CNumberOfEmployees%2COwnership%2CTickerSymbol%2CDescription%2CRating%2CSite%2COwnerId%2CCreatedDate%2CCreatedById%2CLastModifiedDate%2CLastModifiedById%2CSystemModstamp%2CLastActivityDate%2CLastViewedDate%2CLastReferencedDate%2CPersonContactId%2CIsPersonAccount%2CPersonMailingStreet%2CPersonMailingCity%2CPersonMailingState%2CPersonMailingPostalCode%2CPersonMailingCountry%2CPersonMailingLatitude%2CPersonMailingLongitude%2CPersonMailingGeocodeAccuracy%2CPersonOtherStreet%2CPersonOtherCity%2CPersonOtherState%2CPersonOtherPostalCode%2CPersonOtherCountry%2CPersonOtherLatitude%2CPersonOtherLongitude%2CPersonOtherGeocodeAccuracy%2CPersonMobilePhone%2CPersonHomePhone%2CPersonOtherPhone%2CPersonAssistantPhone%2CPersonEmail%2CPersonTitle%2CPersonDepartment%2CPersonAssistantName%2CPersonLeadSource%2CPersonBirthdate%2CPersonHasOptedOutOfEmail%2CPersonLastCURequestDate%2CPersonLastCUUpdateDate%2CPersonEmailBouncedReason%2CPersonEmailBouncedDate%2CPersonIndividualId%2CJigsaw%2CJigsawCompanyId%2CCleanStatus%2CAccountSource%2CDunsNumber%2CTradestyle%2CNaicsCode%2CNaicsDesc%2CYearStarted%2CSicDesc%2CDandbCompanyId%2CCustomerPriority__c%2CSLA__c%2CActive__c%2CNumberofLocations__c%2CUpsellOpportunity__c%2CSLASerialNumber__c%2CSLAExpirationDate__c%2CPace_Account_RecipientID__c%2Cnpe01__One2OneContact__c%2Cnpe01__SYSTEMIsIndividual__c%2Cnpe01__SYSTEM_AccountType__c%2Cnpo02__AverageAmount__c%2Cnpo02__Best_Gift_Year_Total__c%2Cnpo02__Best_Gift_Year__c%2Cnpo02__FirstCloseDate__c%2Cnpo02__Formal_Greeting__c%2Cnpo02__HouseholdPhone__c%2Cnpo02__Informal_Greeting__c%2Cnpo02__LargestAmount__c%2Cnpo02__LastCloseDate__c%2Cnpo02__LastMembershipAmount__c%2Cnpo02__LastMembershipDate__c%2Cnpo02__LastMembershipLevel__c%2Cnpo02__LastMembershipOrigin__c%2Cnpo02__LastOppAmount__c%2Cnpo02__MembershipEndDate__c%2Cnpo02__MembershipJoinDate__c%2Cnpo02__NumberOfClosedOpps__c%2Cnpo02__NumberOfMembershipOpps__c%2Cnpo02__OppAmount2YearsAgo__c%2Cnpo02__OppAmountLastNDays__c%2Cnpo02__OppAmountLastYear__c%2Cnpo02__OppAmountThisYear__c%2Cnpo02__OppsClosed2YearsAgo__c%2Cnpo02__OppsClosedLastNDays__c%2Cnpo02__OppsClosedLastYear__c%2Cnpo02__OppsClosedThisYear__c%2Cnpo02__SYSTEM_CUSTOM_NAMING__c%2Cnpo02__SmallestAmount__c%2Cnpo02__TotalMembershipOppAmount__c%2Cnpo02__TotalOppAmount__c%2Cnpsp__All_Members_Deceased__c%2Cnpsp__Batch__c%2Cnpsp__CustomizableRollups_UseSkewMode__c%2Cnpsp__Funding_Focus__c%2Cnpsp__Grantmaker__c%2Cnpsp__Matching_Gift_Administrator_Name__c%2Cnpsp__Matching_Gift_Amount_Max__c%2Cnpsp__Matching_Gift_Amount_Min__c%2Cnpsp__Matching_Gift_Annual_Employee_Max__c%2Cnpsp__Matching_Gift_Comments__c%2Cnpsp__Matching_Gift_Company__c%2Cnpsp__Matching_Gift_Email__c%2Cnpsp__Matching_Gift_Info_Updated__c%2Cnpsp__Matching_Gift_Percent__c%2Cnpsp__Matching_Gift_Phone__c%2Cnpsp__Matching_Gift_Request_Deadline__c%2Cnpsp__Membership_Span__c%2Cnpsp__Membership_Status__c%2Cnpsp__Number_of_Household_Members__c%2Cnpsp__Sustainer__c%2Cnpsp__Undeliverable_Address__c%2CCBX_externalid__c%2CCustomer_id__c%2Ccust_rating__c%2CMy_Ext_Account_ID__c%2CLevel__pc%2CLanguages__pc%2CPace_Contact_RecipientID__pc%2Cnpe01__AlternateEmail__pc%2Cnpe01__HomeEmail__pc%2Cnpe01__PreferredPhone__pc%2Cnpe01__Preferred_Email__pc%2Cnpe01__Primary_Address_Type__pc%2Cnpe01__Private__pc%2Cnpe01__Secondary_Address_Type__pc%2Cnpe01__SystemAccountProcessor__pc%2Cnpe01__WorkEmail__pc%2Cnpe01__WorkPhone__pc%2Cnpe01__Home_Address__pc%2Cnpe01__Organization_Type__pc%2Cnpe01__Other_Address__pc%2Cnpe01__Type_of_Account__pc%2Cnpe01__Work_Address__pc%2Cnpo02__AverageAmount__pc%2Cnpo02__Best_Gift_Year_Total__pc%2Cnpo02__Best_Gift_Year__pc%2Cnpo02__FirstCloseDate__pc%2Cnpo02__Household_Naming_Order__pc%2Cnpo02__Household__pc%2Cnpo02__LargestAmount__pc%2Cnpo02__LastCloseDate__pc%2Cnpo02__LastMembershipAmount__pc%2Cnpo02__LastMembershipDate__pc%2Cnpo02__LastMembershipLevel__pc%2Cnpo02__LastMembershipOrigin__pc%2Cnpo02__LastOppAmount__pc%2Cnpo02__MembershipEndDate__pc%2Cnpo02__MembershipJoinDate__pc%2Cnpo02__Naming_Exclusions__pc%2Cnpo02__NumberOfClosedOpps__pc%2Cnpo02__NumberOfMembershipOpps__pc%2Cnpo02__OppAmount2YearsAgo__pc%2Cnpo02__OppAmountLastNDays__pc%2Cnpo02__OppAmountLastYear__pc%2Cnpo02__OppAmountThisYear__pc%2Cnpo02__OppsClosed2YearsAgo__pc%2Cnpo02__OppsClosedLastNDays__pc%2Cnpo02__OppsClosedLastYear__pc%2Cnpo02__OppsClosedThisYear__pc%2Cnpo02__SmallestAmount__pc%2Cnpo02__Soft_Credit_Last_Year__pc%2Cnpo02__Soft_Credit_This_Year__pc%2Cnpo02__Soft_Credit_Total__pc%2Cnpo02__Soft_Credit_Two_Years_Ago__pc%2Cnpo02__SystemHouseholdProcessor__pc%2Cnpo02__TotalMembershipOppAmount__pc%2Cnpo02__TotalOppAmount__pc%2Cnpo02__Formula_HouseholdMailingAddress__pc%2Cnpo02__Formula_HouseholdPhone__pc%2Cnpo02__LastCloseDateHH__pc%2Cnpo02__OppAmountLastYearHH__pc%2Cnpo02__OppAmountThisYearHH__pc%2Cnpo02__Total_Household_Gifts__pc%2Cnpsp__Batch__pc%2Cnpsp__Current_Address__pc%2Cnpsp__CustomizableRollups_UseSkewMode__pc%2Cnpsp__Deceased__pc%2Cnpsp__Do_Not_Contact__pc%2Cnpsp__Exclude_from_Household_Formal_Greeting__pc%2Cnpsp__Exclude_from_Household_Informal_Greeting__pc%2Cnpsp__Exclude_from_Household_Name__pc%2Cnpsp__First_Soft_Credit_Amount__pc%2Cnpsp__First_Soft_Credit_Date__pc%2Cnpsp__HHId__pc%2Cnpsp__Largest_Soft_Credit_Amount__pc%2Cnpsp__Largest_Soft_Credit_Date__pc%2Cnpsp__Last_Soft_Credit_Amount__pc%2Cnpsp__Last_Soft_Credit_Date__pc%2Cnpsp__Number_of_Soft_Credits_Last_N_Days__pc%2Cnpsp__Number_of_Soft_Credits_Last_Year__pc%2Cnpsp__Number_of_Soft_Credits_This_Year__pc%2Cnpsp__Number_of_Soft_Credits_Two_Years_Ago__pc%2Cnpsp__Number_of_Soft_Credits__pc%2Cnpsp__Primary_Affiliation__pc%2Cnpsp__Primary_Contact__pc%2Cnpsp__Soft_Credit_Last_N_Days__pc%2Cnpsp__Sustainer__pc%2Cnpsp__Undeliverable_Address__pc%2Cnpsp__is_Address_Override__pc%2Cnpsp__Address_Verification_Status__pc%2CGivecloud_Contact_ExternalID__pc%2CHotglue_custom_field__pc%2CHotglue_custom_field_2__pc%2CHotglue_test_text__pc%2CHotglue_test_text_3__pc%2CHotglue_custom_field_43__pc%2CNew_amazinh_custom_field__pc%2CNew_amazing_custom_field__pc%2CMailmodoSample__pc%2Ctest_field_13__pc%2CAbductedBy__pc%2CInvestor__pc%2CyourCustomField__pc%2Cet4ae5__HasOptedOutOfMobile__pc%2Cet4ae5__Mobile_Country_Code__pc%2Ctest_field_6__pc%2CTestField__pc%2CTest_External_ID__pc+FROM+Account+WHERE+SystemModstamp+%3E+2026-10-26T00%3A00%3A00Z++ORDER+BY+SystemModstamp+ASC
+  response:
+    body:
+      string: '{"totalSize": 2, "done": false, "nextRecordsUrl": "/services/data/v61.0/query/smoke-account-cursor-1",
+        "records": [{"attributes": {"type": "-Fallback-scrubbed-ULbIDYXLqGpIOhKFednYssXMYI",
+        "url": "-Fallback-scrubbed-UymSwjPMAAhFdHHlIyocMImXFsYcGaUdNaPwsMSRuNgsLMblWGCUfMECwwyvCRVbrsRTNURgZhX"},
+        "Id": "001fj000027MUrJAAW", "IsDeleted": true, "MasterRecordId": null, "Name":
+        "Fake-Ryan Nichols", "LastName": null, "FirstName": null, "Salutation": null,
+        "Type": "-Fallback-scrubbed-znhyNsevoWSvjpSIqJaVcAFroXCy", "RecordTypeId":
+        "-Fallback-scrubbed-ggNcNYcpKnfAsTXusyqpYAGNketDgFltqSBey", "ParentId": null,
+        "BillingStreet": "Fake-78600 Allen Fork Apt. 721", "BillingCity": "Fake-North
+        Loretta", "BillingState": "Fake-West Virginia", "BillingPostalCode": "03810",
+        "BillingCountry": "-Fallback-scrubbed-wDajhepkZkyeksDemjWZKInpp", "BillingLatitude":
+        null, "BillingLongitude": null, "BillingGeocodeAccuracy": null, "ShippingStreet":
+        null, "ShippingCity": null, "ShippingState": null, "ShippingPostalCode": null,
+        "ShippingCountry": null, "ShippingLatitude": null, "ShippingLongitude": null,
+        "ShippingGeocodeAccuracy": null, "Phone": "555-0145", "Fax": null, "AccountNumber":
+        null, "Website": null, "PhotoUrl": "-Fallback-scrubbed-QeVAmtkRcLPRHXDlvkqQjaFuGEsQTQvqVVfYzQGMTUYQeDvISzJrkqvwDhqm",
+        "Sic": null, "Industry": null, "AnnualRevenue": null, "NumberOfEmployees":
+        null, "Ownership": null, "TickerSymbol": null, "Description": null, "Rating":
+        null, "Site": null, "OwnerId": "-Fallback-scrubbed-TVEZQHgbGIdfjVjsolfFqzYMJkQzgcnDJBKxV",
+        "CreatedDate": "-Fallback-scrubbed-HLnWNnjHBRiPxuaZxEAcuoiGYiPCvVvSnWfwmRsmWLvRGMD",
+        "CreatedById": "-Fallback-scrubbed-TVEZQHgbGIdfjVjsolfFqzYMJkQzgcnDJBKxV",
+        "LastModifiedDate": "-Fallback-scrubbed-ZdsFcQAojDVFJakgpmmfaVizUfjSNwmnEUnWVlzBzCHJUof",
+        "LastModifiedById": "-Fallback-scrubbed-TVEZQHgbGIdfjVjsolfFqzYMJkQzgcnDJBKxV",
+        "SystemModstamp": "2026-10-26T13:41:10.000+0000", "LastActivityDate": null,
+        "LastViewedDate": null, "LastReferencedDate": null, "PersonContactId": null,
+        "IsPersonAccount": true, "PersonMailingStreet": null, "PersonMailingCity":
+        null, "PersonMailingState": null, "PersonMailingPostalCode": null, "PersonMailingCountry":
+        null, "PersonMailingLatitude": null, "PersonMailingLongitude": null, "PersonMailingGeocodeAccuracy":
+        null, "PersonOtherStreet": null, "PersonOtherCity": null, "PersonOtherState":
+        null, "PersonOtherPostalCode": null, "PersonOtherCountry": null, "PersonOtherLatitude":
+        null, "PersonOtherLongitude": null, "PersonOtherGeocodeAccuracy": null, "PersonMobilePhone":
+        null, "PersonHomePhone": null, "PersonOtherPhone": null, "PersonAssistantPhone":
+        null, "PersonEmail": null, "PersonTitle": null, "PersonDepartment": null,
+        "PersonAssistantName": null, "PersonLeadSource": null, "PersonBirthdate":
+        null, "PersonHasOptedOutOfEmail": true, "PersonLastCURequestDate": null, "PersonLastCUUpdateDate":
+        null, "PersonEmailBouncedReason": null, "PersonEmailBouncedDate": null, "PersonIndividualId":
+        null, "Jigsaw": null, "JigsawCompanyId": null, "CleanStatus": "-Fallback-scrubbed-mpjNkuOqVCtNmbTToOVCZKduDc",
+        "AccountSource": null, "DunsNumber": null, "Tradestyle": null, "NaicsCode":
+        null, "NaicsDesc": null, "YearStarted": null, "SicDesc": null, "DandbCompanyId":
+        null, "CustomerPriority__c": null, "SLA__c": null, "Active__c": null, "NumberofLocations__c":
+        null, "UpsellOpportunity__c": null, "SLASerialNumber__c": null, "SLAExpirationDate__c":
+        null, "Pace_Account_RecipientID__c": null, "npe01__One2OneContact__c": "-Fallback-scrubbed-cGmkkTTYxywBxLNdITBhQQhlwMGzvKbkBqICK",
+        "npe01__SYSTEMIsIndividual__c": true, "npe01__SYSTEM_AccountType__c": "-Fallback-scrubbed-fzqOkLRjPFZMowqedgUOHHWSEqTwhBtzriXG",
+        "npo02__AverageAmount__c": -576949.992467502, "npo02__Best_Gift_Year_Total__c":
+        null, "npo02__Best_Gift_Year__c": null, "npo02__FirstCloseDate__c": null,
+        "npo02__Formal_Greeting__c": "-Fallback-scrubbed-jJToypBjPJWtngERVBDPCrcDFJthkaTfA",
+        "npo02__HouseholdPhone__c": null, "npo02__Informal_Greeting__c": "-Fallback-scrubbed-EzqkQpeVCCtQGuqqLIzrMCDS",
+        "npo02__LargestAmount__c": -576949.992467502, "npo02__LastCloseDate__c": null,
+        "npo02__LastMembershipAmount__c": -576949.992467502, "npo02__LastMembershipDate__c":
+        null, "npo02__LastMembershipLevel__c": null, "npo02__LastMembershipOrigin__c":
+        null, "npo02__LastOppAmount__c": -576949.992467502, "npo02__MembershipEndDate__c":
+        null, "npo02__MembershipJoinDate__c": null, "npo02__NumberOfClosedOpps__c":
+        -576949.992467502, "npo02__NumberOfMembershipOpps__c": -576949.992467502,
+        "npo02__OppAmount2YearsAgo__c": -576949.992467502, "npo02__OppAmountLastNDays__c":
+        -576949.992467502, "npo02__OppAmountLastYear__c": -576949.992467502, "npo02__OppAmountThisYear__c":
+        -576949.992467502, "npo02__OppsClosed2YearsAgo__c": -576949.992467502, "npo02__OppsClosedLastNDays__c":
+        -576949.992467502, "npo02__OppsClosedLastYear__c": -576949.992467502, "npo02__OppsClosedThisYear__c":
+        -576949.992467502, "npo02__SYSTEM_CUSTOM_NAMING__c": null, "npo02__SmallestAmount__c":
+        -576949.992467502, "npo02__TotalMembershipOppAmount__c": -576949.992467502,
+        "npo02__TotalOppAmount__c": -576949.992467502, "npsp__All_Members_Deceased__c":
+        true, "npsp__Batch__c": null, "npsp__CustomizableRollups_UseSkewMode__c":
+        true, "npsp__Funding_Focus__c": null, "npsp__Grantmaker__c": true, "npsp__Matching_Gift_Administrator_Name__c":
+        null, "npsp__Matching_Gift_Amount_Max__c": null, "npsp__Matching_Gift_Amount_Min__c":
+        null, "npsp__Matching_Gift_Annual_Employee_Max__c": null, "npsp__Matching_Gift_Comments__c":
+        null, "npsp__Matching_Gift_Company__c": true, "npsp__Matching_Gift_Email__c":
+        null, "npsp__Matching_Gift_Info_Updated__c": null, "npsp__Matching_Gift_Percent__c":
+        null, "npsp__Matching_Gift_Phone__c": null, "npsp__Matching_Gift_Request_Deadline__c":
+        null, "npsp__Membership_Span__c": null, "npsp__Membership_Status__c": null,
+        "npsp__Number_of_Household_Members__c": 140.63216186523, "npsp__Sustainer__c":
+        null, "npsp__Undeliverable_Address__c": true, "CBX_externalid__c": null, "Customer_id__c":
+        null, "cust_rating__c": null, "My_Ext_Account_ID__c": null, "Level__pc": null,
+        "Languages__pc": null, "Pace_Contact_RecipientID__pc": null, "npe01__AlternateEmail__pc":
+        null, "npe01__HomeEmail__pc": null, "npe01__PreferredPhone__pc": null, "npe01__Preferred_Email__pc":
+        null, "npe01__Primary_Address_Type__pc": null, "npe01__Private__pc": true,
+        "npe01__Secondary_Address_Type__pc": null, "npe01__SystemAccountProcessor__pc":
+        null, "npe01__WorkEmail__pc": null, "npe01__WorkPhone__pc": null, "npe01__Home_Address__pc":
+        null, "npe01__Organization_Type__pc": null, "npe01__Other_Address__pc": null,
+        "npe01__Type_of_Account__pc": "-Fallback-scrubbed-NZtYDniIvaibziXSADviKTtChaLonhk",
+        "npe01__Work_Address__pc": null, "npo02__AverageAmount__pc": null, "npo02__Best_Gift_Year_Total__pc":
+        null, "npo02__Best_Gift_Year__pc": null, "npo02__FirstCloseDate__pc": null,
+        "npo02__Household_Naming_Order__pc": null, "npo02__Household__pc": null, "npo02__LargestAmount__pc":
+        null, "npo02__LastCloseDate__pc": null, "npo02__LastMembershipAmount__pc":
+        null, "npo02__LastMembershipDate__pc": null, "npo02__LastMembershipLevel__pc":
+        null, "npo02__LastMembershipOrigin__pc": null, "npo02__LastOppAmount__pc":
+        null, "npo02__MembershipEndDate__pc": null, "npo02__MembershipJoinDate__pc":
+        null, "npo02__Naming_Exclusions__pc": null, "npo02__NumberOfClosedOpps__pc":
+        null, "npo02__NumberOfMembershipOpps__pc": null, "npo02__OppAmount2YearsAgo__pc":
+        null, "npo02__OppAmountLastNDays__pc": null, "npo02__OppAmountLastYear__pc":
+        null, "npo02__OppAmountThisYear__pc": null, "npo02__OppsClosed2YearsAgo__pc":
+        null, "npo02__OppsClosedLastNDays__pc": null, "npo02__OppsClosedLastYear__pc":
+        null, "npo02__OppsClosedThisYear__pc": null, "npo02__SmallestAmount__pc":
+        null, "npo02__Soft_Credit_Last_Year__pc": null, "npo02__Soft_Credit_This_Year__pc":
+        null, "npo02__Soft_Credit_Total__pc": null, "npo02__Soft_Credit_Two_Years_Ago__pc":
+        null, "npo02__SystemHouseholdProcessor__pc": null, "npo02__TotalMembershipOppAmount__pc":
+        null, "npo02__TotalOppAmount__pc": null, "npo02__Formula_HouseholdMailingAddress__pc":
+        "-Fallback-scrubbed-gSVIdhBdlpYxVHkdRSWGGrXDEyElfmK", "npo02__Formula_HouseholdPhone__pc":
+        null, "npo02__LastCloseDateHH__pc": null, "npo02__OppAmountLastYearHH__pc":
+        -576949.992467502, "npo02__OppAmountThisYearHH__pc": -576949.992467502, "npo02__Total_Household_Gifts__pc":
+        -576949.992467502, "npsp__Batch__pc": null, "npsp__Current_Address__pc": null,
+        "npsp__CustomizableRollups_UseSkewMode__pc": true, "npsp__Deceased__pc": true,
+        "npsp__Do_Not_Contact__pc": true, "npsp__Exclude_from_Household_Formal_Greeting__pc":
+        true, "npsp__Exclude_from_Household_Informal_Greeting__pc": true, "npsp__Exclude_from_Household_Name__pc":
+        true, "npsp__First_Soft_Credit_Amount__pc": null, "npsp__First_Soft_Credit_Date__pc":
+        null, "npsp__HHId__pc": null, "npsp__Largest_Soft_Credit_Amount__pc": null,
+        "npsp__Largest_Soft_Credit_Date__pc": null, "npsp__Last_Soft_Credit_Amount__pc":
+        null, "npsp__Last_Soft_Credit_Date__pc": null, "npsp__Number_of_Soft_Credits_Last_N_Days__pc":
+        null, "npsp__Number_of_Soft_Credits_Last_Year__pc": null, "npsp__Number_of_Soft_Credits_This_Year__pc":
+        null, "npsp__Number_of_Soft_Credits_Two_Years_Ago__pc": null, "npsp__Number_of_Soft_Credits__pc":
+        null, "npsp__Primary_Affiliation__pc": null, "npsp__Primary_Contact__pc":
+        true, "npsp__Soft_Credit_Last_N_Days__pc": null, "npsp__Sustainer__pc": null,
+        "npsp__Undeliverable_Address__pc": true, "npsp__is_Address_Override__pc":
+        true, "npsp__Address_Verification_Status__pc": null, "Givecloud_Contact_ExternalID__pc":
+        null, "Hotglue_custom_field__pc": null, "Hotglue_custom_field_2__pc": null,
+        "Hotglue_test_text__pc": null, "Hotglue_test_text_3__pc": null, "Hotglue_custom_field_43__pc":
+        null, "New_amazinh_custom_field__pc": null, "New_amazing_custom_field__pc":
+        null, "MailmodoSample__pc": null, "test_field_13__pc": null, "AbductedBy__pc":
+        null, "Investor__pc": null, "yourCustomField__pc": null, "et4ae5__HasOptedOutOfMobile__pc":
+        true, "et4ae5__Mobile_Country_Code__pc": null, "test_field_6__pc": null, "TestField__pc":
+        null, "Test_External_ID__pc": null}]}'
+    headers:
+      Cache-Control:
+      - no-cache,must-revalidate,max-age=0,no-store,private
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 05 Nov 2026 20:13:02 GMT
+      Permissions-Policy:
+      - unload=*
+      Sforce-Limit-Info:
+      - api-usage=989/15000
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      X-Content-Type-Options:
+      - nosniff
+      X-Robots-Tag:
+      - none
+      content-length:
+      - '10094'
+      x-sfdc-trace-flags:
+      - '01'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.29.0
+    method: GET
+    uri: https://salesforce.example.com/services/data/v61.0/query/smoke-account-cursor-1?q=SELECT+Id%2CIsDeleted%2CMasterRecordId%2CName%2CLastName%2CFirstName%2CSalutation%2CType%2CRecordTypeId%2CParentId%2CBillingStreet%2CBillingCity%2CBillingState%2CBillingPostalCode%2CBillingCountry%2CBillingLatitude%2CBillingLongitude%2CBillingGeocodeAccuracy%2CShippingStreet%2CShippingCity%2CShippingState%2CShippingPostalCode%2CShippingCountry%2CShippingLatitude%2CShippingLongitude%2CShippingGeocodeAccuracy%2CPhone%2CFax%2CAccountNumber%2CWebsite%2CPhotoUrl%2CSic%2CIndustry%2CAnnualRevenue%2CNumberOfEmployees%2COwnership%2CTickerSymbol%2CDescription%2CRating%2CSite%2COwnerId%2CCreatedDate%2CCreatedById%2CLastModifiedDate%2CLastModifiedById%2CSystemModstamp%2CLastActivityDate%2CLastViewedDate%2CLastReferencedDate%2CPersonContactId%2CIsPersonAccount%2CPersonMailingStreet%2CPersonMailingCity%2CPersonMailingState%2CPersonMailingPostalCode%2CPersonMailingCountry%2CPersonMailingLatitude%2CPersonMailingLongitude%2CPersonMailingGeocodeAccuracy%2CPersonOtherStreet%2CPersonOtherCity%2CPersonOtherState%2CPersonOtherPostalCode%2CPersonOtherCountry%2CPersonOtherLatitude%2CPersonOtherLongitude%2CPersonOtherGeocodeAccuracy%2CPersonMobilePhone%2CPersonHomePhone%2CPersonOtherPhone%2CPersonAssistantPhone%2CPersonEmail%2CPersonTitle%2CPersonDepartment%2CPersonAssistantName%2CPersonLeadSource%2CPersonBirthdate%2CPersonHasOptedOutOfEmail%2CPersonLastCURequestDate%2CPersonLastCUUpdateDate%2CPersonEmailBouncedReason%2CPersonEmailBouncedDate%2CPersonIndividualId%2CJigsaw%2CJigsawCompanyId%2CCleanStatus%2CAccountSource%2CDunsNumber%2CTradestyle%2CNaicsCode%2CNaicsDesc%2CYearStarted%2CSicDesc%2CDandbCompanyId%2CCustomerPriority__c%2CSLA__c%2CActive__c%2CNumberofLocations__c%2CUpsellOpportunity__c%2CSLASerialNumber__c%2CSLAExpirationDate__c%2CPace_Account_RecipientID__c%2Cnpe01__One2OneContact__c%2Cnpe01__SYSTEMIsIndividual__c%2Cnpe01__SYSTEM_AccountType__c%2Cnpo02__AverageAmount__c%2Cnpo02__Best_Gift_Year_Total__c%2Cnpo02__Best_Gift_Year__c%2Cnpo02__FirstCloseDate__c%2Cnpo02__Formal_Greeting__c%2Cnpo02__HouseholdPhone__c%2Cnpo02__Informal_Greeting__c%2Cnpo02__LargestAmount__c%2Cnpo02__LastCloseDate__c%2Cnpo02__LastMembershipAmount__c%2Cnpo02__LastMembershipDate__c%2Cnpo02__LastMembershipLevel__c%2Cnpo02__LastMembershipOrigin__c%2Cnpo02__LastOppAmount__c%2Cnpo02__MembershipEndDate__c%2Cnpo02__MembershipJoinDate__c%2Cnpo02__NumberOfClosedOpps__c%2Cnpo02__NumberOfMembershipOpps__c%2Cnpo02__OppAmount2YearsAgo__c%2Cnpo02__OppAmountLastNDays__c%2Cnpo02__OppAmountLastYear__c%2Cnpo02__OppAmountThisYear__c%2Cnpo02__OppsClosed2YearsAgo__c%2Cnpo02__OppsClosedLastNDays__c%2Cnpo02__OppsClosedLastYear__c%2Cnpo02__OppsClosedThisYear__c%2Cnpo02__SYSTEM_CUSTOM_NAMING__c%2Cnpo02__SmallestAmount__c%2Cnpo02__TotalMembershipOppAmount__c%2Cnpo02__TotalOppAmount__c%2Cnpsp__All_Members_Deceased__c%2Cnpsp__Batch__c%2Cnpsp__CustomizableRollups_UseSkewMode__c%2Cnpsp__Funding_Focus__c%2Cnpsp__Grantmaker__c%2Cnpsp__Matching_Gift_Administrator_Name__c%2Cnpsp__Matching_Gift_Amount_Max__c%2Cnpsp__Matching_Gift_Amount_Min__c%2Cnpsp__Matching_Gift_Annual_Employee_Max__c%2Cnpsp__Matching_Gift_Comments__c%2Cnpsp__Matching_Gift_Company__c%2Cnpsp__Matching_Gift_Email__c%2Cnpsp__Matching_Gift_Info_Updated__c%2Cnpsp__Matching_Gift_Percent__c%2Cnpsp__Matching_Gift_Phone__c%2Cnpsp__Matching_Gift_Request_Deadline__c%2Cnpsp__Membership_Span__c%2Cnpsp__Membership_Status__c%2Cnpsp__Number_of_Household_Members__c%2Cnpsp__Sustainer__c%2Cnpsp__Undeliverable_Address__c%2CCBX_externalid__c%2CCustomer_id__c%2Ccust_rating__c%2CMy_Ext_Account_ID__c%2CLevel__pc%2CLanguages__pc%2CPace_Contact_RecipientID__pc%2Cnpe01__AlternateEmail__pc%2Cnpe01__HomeEmail__pc%2Cnpe01__PreferredPhone__pc%2Cnpe01__Preferred_Email__pc%2Cnpe01__Primary_Address_Type__pc%2Cnpe01__Private__pc%2Cnpe01__Secondary_Address_Type__pc%2Cnpe01__SystemAccountProcessor__pc%2Cnpe01__WorkEmail__pc%2Cnpe01__WorkPhone__pc%2Cnpe01__Home_Address__pc%2Cnpe01__Organization_Type__pc%2Cnpe01__Other_Address__pc%2Cnpe01__Type_of_Account__pc%2Cnpe01__Work_Address__pc%2Cnpo02__AverageAmount__pc%2Cnpo02__Best_Gift_Year_Total__pc%2Cnpo02__Best_Gift_Year__pc%2Cnpo02__FirstCloseDate__pc%2Cnpo02__Household_Naming_Order__pc%2Cnpo02__Household__pc%2Cnpo02__LargestAmount__pc%2Cnpo02__LastCloseDate__pc%2Cnpo02__LastMembershipAmount__pc%2Cnpo02__LastMembershipDate__pc%2Cnpo02__LastMembershipLevel__pc%2Cnpo02__LastMembershipOrigin__pc%2Cnpo02__LastOppAmount__pc%2Cnpo02__MembershipEndDate__pc%2Cnpo02__MembershipJoinDate__pc%2Cnpo02__Naming_Exclusions__pc%2Cnpo02__NumberOfClosedOpps__pc%2Cnpo02__NumberOfMembershipOpps__pc%2Cnpo02__OppAmount2YearsAgo__pc%2Cnpo02__OppAmountLastNDays__pc%2Cnpo02__OppAmountLastYear__pc%2Cnpo02__OppAmountThisYear__pc%2Cnpo02__OppsClosed2YearsAgo__pc%2Cnpo02__OppsClosedLastNDays__pc%2Cnpo02__OppsClosedLastYear__pc%2Cnpo02__OppsClosedThisYear__pc%2Cnpo02__SmallestAmount__pc%2Cnpo02__Soft_Credit_Last_Year__pc%2Cnpo02__Soft_Credit_This_Year__pc%2Cnpo02__Soft_Credit_Total__pc%2Cnpo02__Soft_Credit_Two_Years_Ago__pc%2Cnpo02__SystemHouseholdProcessor__pc%2Cnpo02__TotalMembershipOppAmount__pc%2Cnpo02__TotalOppAmount__pc%2Cnpo02__Formula_HouseholdMailingAddress__pc%2Cnpo02__Formula_HouseholdPhone__pc%2Cnpo02__LastCloseDateHH__pc%2Cnpo02__OppAmountLastYearHH__pc%2Cnpo02__OppAmountThisYearHH__pc%2Cnpo02__Total_Household_Gifts__pc%2Cnpsp__Batch__pc%2Cnpsp__Current_Address__pc%2Cnpsp__CustomizableRollups_UseSkewMode__pc%2Cnpsp__Deceased__pc%2Cnpsp__Do_Not_Contact__pc%2Cnpsp__Exclude_from_Household_Formal_Greeting__pc%2Cnpsp__Exclude_from_Household_Informal_Greeting__pc%2Cnpsp__Exclude_from_Household_Name__pc%2Cnpsp__First_Soft_Credit_Amount__pc%2Cnpsp__First_Soft_Credit_Date__pc%2Cnpsp__HHId__pc%2Cnpsp__Largest_Soft_Credit_Amount__pc%2Cnpsp__Largest_Soft_Credit_Date__pc%2Cnpsp__Last_Soft_Credit_Amount__pc%2Cnpsp__Last_Soft_Credit_Date__pc%2Cnpsp__Number_of_Soft_Credits_Last_N_Days__pc%2Cnpsp__Number_of_Soft_Credits_Last_Year__pc%2Cnpsp__Number_of_Soft_Credits_This_Year__pc%2Cnpsp__Number_of_Soft_Credits_Two_Years_Ago__pc%2Cnpsp__Number_of_Soft_Credits__pc%2Cnpsp__Primary_Affiliation__pc%2Cnpsp__Primary_Contact__pc%2Cnpsp__Soft_Credit_Last_N_Days__pc%2Cnpsp__Sustainer__pc%2Cnpsp__Undeliverable_Address__pc%2Cnpsp__is_Address_Override__pc%2Cnpsp__Address_Verification_Status__pc%2CGivecloud_Contact_ExternalID__pc%2CHotglue_custom_field__pc%2CHotglue_custom_field_2__pc%2CHotglue_test_text__pc%2CHotglue_test_text_3__pc%2CHotglue_custom_field_43__pc%2CNew_amazinh_custom_field__pc%2CNew_amazing_custom_field__pc%2CMailmodoSample__pc%2Ctest_field_13__pc%2CAbductedBy__pc%2CInvestor__pc%2CyourCustomField__pc%2Cet4ae5__HasOptedOutOfMobile__pc%2Cet4ae5__Mobile_Country_Code__pc%2Ctest_field_6__pc%2CTestField__pc%2CTest_External_ID__pc+FROM+Account+WHERE+SystemModstamp+%3E+2026-10-26T00%3A00%3A00Z++ORDER+BY+SystemModstamp+ASC
+  response:
+    body:
+      string: '{"totalSize": 2, "done": true, "records": [{"attributes": {"type":
+        "-Fallback-scrubbed-ULbIDYXLqGpIOhKFednYssXMYI", "url": "-Fallback-scrubbed-CHWnLMGIaSGiCdokeVhzRqsypLeEDiNMHeqbKedVDjKYKZyLzdancqaxvdfaPoZUydemwlKzItJ"},
+        "Id": "001fj000028NbsTAAS", "IsDeleted": true, "MasterRecordId": null, "Name":
+        "Fake-Kimberly Henry", "LastName": null, "FirstName": null, "Salutation":
+        null, "Type": "-Fallback-scrubbed-znhyNsevoWSvjpSIqJaVcAFroXCy", "RecordTypeId":
+        "-Fallback-scrubbed-ggNcNYcpKnfAsTXusyqpYAGNketDgFltqSBey", "ParentId": null,
+        "BillingStreet": null, "BillingCity": null, "BillingState": null, "BillingPostalCode":
+        null, "BillingCountry": null, "BillingLatitude": null, "BillingLongitude":
+        null, "BillingGeocodeAccuracy": null, "ShippingStreet": null, "ShippingCity":
+        null, "ShippingState": null, "ShippingPostalCode": null, "ShippingCountry":
+        null, "ShippingLatitude": null, "ShippingLongitude": null, "ShippingGeocodeAccuracy":
+        null, "Phone": null, "Fax": null, "AccountNumber": null, "Website": null,
+        "PhotoUrl": "-Fallback-scrubbed-hhEoHwludzzDYQCRkSSFjmarRmsOFZvvOZLLiqUpgTnUCgoOPTSDiXHQgqre",
+        "Sic": null, "Industry": null, "AnnualRevenue": null, "NumberOfEmployees":
+        null, "Ownership": null, "TickerSymbol": null, "Description": null, "Rating":
+        null, "Site": null, "OwnerId": "-Fallback-scrubbed-TVEZQHgbGIdfjVjsolfFqzYMJkQzgcnDJBKxV",
+        "CreatedDate": "-Fallback-scrubbed-EUidONUoJQGfdLzkPfyUHhZGuxutWjrOnuMOPrzjwTuXmHN",
+        "CreatedById": "-Fallback-scrubbed-TVEZQHgbGIdfjVjsolfFqzYMJkQzgcnDJBKxV",
+        "LastModifiedDate": "-Fallback-scrubbed-zbOptjYzOyxmhDMfVNiOQeBYyZCjqHkUjpUtwAujvUuaSzc",
+        "LastModifiedById": "-Fallback-scrubbed-TVEZQHgbGIdfjVjsolfFqzYMJkQzgcnDJBKxV",
+        "SystemModstamp": "2026-10-28T13:51:22.000+0000", "LastActivityDate": null,
+        "LastViewedDate": null, "LastReferencedDate": null, "PersonContactId": null,
+        "IsPersonAccount": true, "PersonMailingStreet": null, "PersonMailingCity":
+        null, "PersonMailingState": null, "PersonMailingPostalCode": null, "PersonMailingCountry":
+        null, "PersonMailingLatitude": null, "PersonMailingLongitude": null, "PersonMailingGeocodeAccuracy":
+        null, "PersonOtherStreet": null, "PersonOtherCity": null, "PersonOtherState":
+        null, "PersonOtherPostalCode": null, "PersonOtherCountry": null, "PersonOtherLatitude":
+        null, "PersonOtherLongitude": null, "PersonOtherGeocodeAccuracy": null, "PersonMobilePhone":
+        null, "PersonHomePhone": null, "PersonOtherPhone": null, "PersonAssistantPhone":
+        null, "PersonEmail": null, "PersonTitle": null, "PersonDepartment": null,
+        "PersonAssistantName": null, "PersonLeadSource": null, "PersonBirthdate":
+        null, "PersonHasOptedOutOfEmail": true, "PersonLastCURequestDate": null, "PersonLastCUUpdateDate":
+        null, "PersonEmailBouncedReason": null, "PersonEmailBouncedDate": null, "PersonIndividualId":
+        null, "Jigsaw": null, "JigsawCompanyId": null, "CleanStatus": "-Fallback-scrubbed-mpjNkuOqVCtNmbTToOVCZKduDc",
+        "AccountSource": null, "DunsNumber": null, "Tradestyle": null, "NaicsCode":
+        null, "NaicsDesc": null, "YearStarted": null, "SicDesc": null, "DandbCompanyId":
+        null, "CustomerPriority__c": null, "SLA__c": null, "Active__c": null, "NumberofLocations__c":
+        null, "UpsellOpportunity__c": null, "SLASerialNumber__c": null, "SLAExpirationDate__c":
+        null, "Pace_Account_RecipientID__c": null, "npe01__One2OneContact__c": null,
+        "npe01__SYSTEMIsIndividual__c": true, "npe01__SYSTEM_AccountType__c": "-Fallback-scrubbed-fzqOkLRjPFZMowqedgUOHHWSEqTwhBtzriXG",
+        "npo02__AverageAmount__c": -576949.992467502, "npo02__Best_Gift_Year_Total__c":
+        -576949.992467502, "npo02__Best_Gift_Year__c": null, "npo02__FirstCloseDate__c":
+        null, "npo02__Formal_Greeting__c": "-Fallback-scrubbed-FBzoZjZwsIDVMOUfLnOxmWJnlDUpfvf",
+        "npo02__HouseholdPhone__c": null, "npo02__Informal_Greeting__c": "-Fallback-scrubbed-FBzoZjZwsIDVMOUfLnOxmWJnlDUpfvf",
+        "npo02__LargestAmount__c": -576949.992467502, "npo02__LastCloseDate__c": null,
+        "npo02__LastMembershipAmount__c": -576949.992467502, "npo02__LastMembershipDate__c":
+        null, "npo02__LastMembershipLevel__c": null, "npo02__LastMembershipOrigin__c":
+        null, "npo02__LastOppAmount__c": null, "npo02__MembershipEndDate__c": null,
+        "npo02__MembershipJoinDate__c": null, "npo02__NumberOfClosedOpps__c": -576949.992467502,
+        "npo02__NumberOfMembershipOpps__c": -576949.992467502, "npo02__OppAmount2YearsAgo__c":
+        -576949.992467502, "npo02__OppAmountLastNDays__c": -576949.992467502, "npo02__OppAmountLastYear__c":
+        -576949.992467502, "npo02__OppAmountThisYear__c": -576949.992467502, "npo02__OppsClosed2YearsAgo__c":
+        -576949.992467502, "npo02__OppsClosedLastNDays__c": -576949.992467502, "npo02__OppsClosedLastYear__c":
+        -576949.992467502, "npo02__OppsClosedThisYear__c": -576949.992467502, "npo02__SYSTEM_CUSTOM_NAMING__c":
+        null, "npo02__SmallestAmount__c": -576949.992467502, "npo02__TotalMembershipOppAmount__c":
+        -576949.992467502, "npo02__TotalOppAmount__c": -576949.992467502, "npsp__All_Members_Deceased__c":
+        true, "npsp__Batch__c": null, "npsp__CustomizableRollups_UseSkewMode__c":
+        true, "npsp__Funding_Focus__c": null, "npsp__Grantmaker__c": true, "npsp__Matching_Gift_Administrator_Name__c":
+        null, "npsp__Matching_Gift_Amount_Max__c": null, "npsp__Matching_Gift_Amount_Min__c":
+        null, "npsp__Matching_Gift_Annual_Employee_Max__c": null, "npsp__Matching_Gift_Comments__c":
+        null, "npsp__Matching_Gift_Company__c": true, "npsp__Matching_Gift_Email__c":
+        null, "npsp__Matching_Gift_Info_Updated__c": null, "npsp__Matching_Gift_Percent__c":
+        null, "npsp__Matching_Gift_Phone__c": null, "npsp__Matching_Gift_Request_Deadline__c":
+        null, "npsp__Membership_Span__c": null, "npsp__Membership_Status__c": null,
+        "npsp__Number_of_Household_Members__c": -576949.992467502, "npsp__Sustainer__c":
+        null, "npsp__Undeliverable_Address__c": true, "CBX_externalid__c": null, "Customer_id__c":
+        null, "cust_rating__c": null, "My_Ext_Account_ID__c": null, "Level__pc": null,
+        "Languages__pc": null, "Pace_Contact_RecipientID__pc": null, "npe01__AlternateEmail__pc":
+        null, "npe01__HomeEmail__pc": null, "npe01__PreferredPhone__pc": null, "npe01__Preferred_Email__pc":
+        null, "npe01__Primary_Address_Type__pc": null, "npe01__Private__pc": true,
+        "npe01__Secondary_Address_Type__pc": null, "npe01__SystemAccountProcessor__pc":
+        null, "npe01__WorkEmail__pc": null, "npe01__WorkPhone__pc": null, "npe01__Home_Address__pc":
+        null, "npe01__Organization_Type__pc": null, "npe01__Other_Address__pc": null,
+        "npe01__Type_of_Account__pc": "-Fallback-scrubbed-NZtYDniIvaibziXSADviKTtChaLonhk",
+        "npe01__Work_Address__pc": null, "npo02__AverageAmount__pc": null, "npo02__Best_Gift_Year_Total__pc":
+        null, "npo02__Best_Gift_Year__pc": null, "npo02__FirstCloseDate__pc": null,
+        "npo02__Household_Naming_Order__pc": null, "npo02__Household__pc": null, "npo02__LargestAmount__pc":
+        null, "npo02__LastCloseDate__pc": null, "npo02__LastMembershipAmount__pc":
+        null, "npo02__LastMembershipDate__pc": null, "npo02__LastMembershipLevel__pc":
+        null, "npo02__LastMembershipOrigin__pc": null, "npo02__LastOppAmount__pc":
+        null, "npo02__MembershipEndDate__pc": null, "npo02__MembershipJoinDate__pc":
+        null, "npo02__Naming_Exclusions__pc": null, "npo02__NumberOfClosedOpps__pc":
+        null, "npo02__NumberOfMembershipOpps__pc": null, "npo02__OppAmount2YearsAgo__pc":
+        null, "npo02__OppAmountLastNDays__pc": null, "npo02__OppAmountLastYear__pc":
+        null, "npo02__OppAmountThisYear__pc": null, "npo02__OppsClosed2YearsAgo__pc":
+        null, "npo02__OppsClosedLastNDays__pc": null, "npo02__OppsClosedLastYear__pc":
+        null, "npo02__OppsClosedThisYear__pc": null, "npo02__SmallestAmount__pc":
+        null, "npo02__Soft_Credit_Last_Year__pc": null, "npo02__Soft_Credit_This_Year__pc":
+        null, "npo02__Soft_Credit_Total__pc": null, "npo02__Soft_Credit_Two_Years_Ago__pc":
+        null, "npo02__SystemHouseholdProcessor__pc": null, "npo02__TotalMembershipOppAmount__pc":
+        null, "npo02__TotalOppAmount__pc": null, "npo02__Formula_HouseholdMailingAddress__pc":
+        "-Fallback-scrubbed-gSVIdhBdlpYxVHkdRSWGGrXDEyElfmK", "npo02__Formula_HouseholdPhone__pc":
+        null, "npo02__LastCloseDateHH__pc": null, "npo02__OppAmountLastYearHH__pc":
+        -576949.992467502, "npo02__OppAmountThisYearHH__pc": -576949.992467502, "npo02__Total_Household_Gifts__pc":
+        -576949.992467502, "npsp__Batch__pc": null, "npsp__Current_Address__pc": null,
+        "npsp__CustomizableRollups_UseSkewMode__pc": true, "npsp__Deceased__pc": true,
+        "npsp__Do_Not_Contact__pc": true, "npsp__Exclude_from_Household_Formal_Greeting__pc":
+        true, "npsp__Exclude_from_Household_Informal_Greeting__pc": true, "npsp__Exclude_from_Household_Name__pc":
+        true, "npsp__First_Soft_Credit_Amount__pc": null, "npsp__First_Soft_Credit_Date__pc":
+        null, "npsp__HHId__pc": null, "npsp__Largest_Soft_Credit_Amount__pc": null,
+        "npsp__Largest_Soft_Credit_Date__pc": null, "npsp__Last_Soft_Credit_Amount__pc":
+        null, "npsp__Last_Soft_Credit_Date__pc": null, "npsp__Number_of_Soft_Credits_Last_N_Days__pc":
+        null, "npsp__Number_of_Soft_Credits_Last_Year__pc": null, "npsp__Number_of_Soft_Credits_This_Year__pc":
+        null, "npsp__Number_of_Soft_Credits_Two_Years_Ago__pc": null, "npsp__Number_of_Soft_Credits__pc":
+        null, "npsp__Primary_Affiliation__pc": null, "npsp__Primary_Contact__pc":
+        true, "npsp__Soft_Credit_Last_N_Days__pc": null, "npsp__Sustainer__pc": null,
+        "npsp__Undeliverable_Address__pc": true, "npsp__is_Address_Override__pc":
+        true, "npsp__Address_Verification_Status__pc": null, "Givecloud_Contact_ExternalID__pc":
+        null, "Hotglue_custom_field__pc": null, "Hotglue_custom_field_2__pc": null,
+        "Hotglue_test_text__pc": null, "Hotglue_test_text_3__pc": null, "Hotglue_custom_field_43__pc":
+        null, "New_amazinh_custom_field__pc": null, "New_amazing_custom_field__pc":
+        null, "MailmodoSample__pc": null, "test_field_13__pc": null, "AbductedBy__pc":
+        null, "Investor__pc": null, "yourCustomField__pc": null, "et4ae5__HasOptedOutOfMobile__pc":
+        true, "et4ae5__Mobile_Country_Code__pc": null, "test_field_6__pc": null, "TestField__pc":
+        null, "Test_External_ID__pc": null}]}'
+    headers:
+      Cache-Control:
+      - no-cache,must-revalidate,max-age=0,no-store,private
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 05 Nov 2026 20:13:02 GMT
+      Permissions-Policy:
+      - unload=*
+      Sforce-Limit-Info:
+      - api-usage=989/15000
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      X-Content-Type-Options:
+      - nosniff
+      X-Robots-Tag:
+      - none
+      content-length:
+      - '9866'
+      x-sfdc-trace-flags:
+      - '01'
+    status:
+      code: 200
+      message: OK
+version: 1

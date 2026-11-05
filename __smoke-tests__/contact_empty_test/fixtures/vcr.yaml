@@ -1,0 +1,151 @@
+interactions:
+- request:
+    body: grant_type=refresh_token
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '24'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - python-requests/2.29.0
+    method: POST
+    uri: https://login.salesforce.com/services/oauth2/token
+  response:
+    body:
+      string: '{"access_token": "00D***", "signature": "-Fallback-scrubbed-sHOWxoqoKKGlwNmLQOQjLLvVwkiRLamPecOaKikwPbSF",
+        "scope": "-Fallback-scrubbed-lXdVkVokTCkKocceHUhLDi", "instance_url": "-Fallback-scrubbed-BhrmWALEXPZGLnouuuxQKhnemjtKOZxJmxherpjzQvhwHydJU",
+        "id": "-Fallback-scrubbed-nviSOfeYBLvBroKwysVrRMRGeDFyVXGfuLGcaTmTeZWDiIOovTJPRgwIepdKvPvfEeIDm",
+        "token_type": "-Fallback-scrubbed-gxdhaS", "issued_at": "7432"}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 05 Nov 2026 20:13:06 GMT
+      Server:
+      - sfdcedge
+      Transfer-Encoding:
+      - chunked
+      X-Request-Id:
+      - 31aa606310dc1b27e8df3fd197ef2019
+      X-SFDC-Edge-Cache:
+      - none
+      X-SFDC-Request-Id:
+      - 31aa606310dc1b27e8df3fd197ef2019
+      cache-control:
+      - no-cache,must-revalidate,max-age=0,no-store,private
+      content-length:
+      - '410'
+      expires:
+      - Thu, 01 Jan 1970 00:00:00 GMT
+      permissions-policy:
+      - unload=*
+      - unload=*
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-sfdc-trace-flags:
+      - '01'
+      - '01'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.29.0
+    method: GET
+    uri: https://salesforce.example.com/services/data/v61.0/queryAll?q=SELECT+COUNT%28%29+FROM+Contact+WHERE+SystemModstamp+%3E+2026-10-29T00%3A00%3A00Z
+  response:
+    body:
+      string: '{"totalSize": 0, "done": true, "records": []}'
+    headers:
+      Cache-Control:
+      - no-cache,must-revalidate,max-age=0,no-store,private
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 05 Nov 2026 20:13:07 GMT
+      Permissions-Policy:
+      - unload=*
+      Sforce-Limit-Info:
+      - api-usage=989/15000
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      X-Content-Type-Options:
+      - nosniff
+      X-Robots-Tag:
+      - none
+      content-length:
+      - '45'
+      x-sfdc-trace-flags:
+      - '01'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.29.0
+    method: GET
+    uri: https://salesforce.example.com/services/data/v61.0/queryAll?q=SELECT+Id%2CIsDeleted%2CMasterRecordId%2CAccountId%2CIsPersonAccount%2CLastName%2CFirstName%2CSalutation%2CName%2COtherStreet%2COtherCity%2COtherState%2COtherPostalCode%2COtherCountry%2COtherLatitude%2COtherLongitude%2COtherGeocodeAccuracy%2CMailingStreet%2CMailingCity%2CMailingState%2CMailingPostalCode%2CMailingCountry%2CMailingLatitude%2CMailingLongitude%2CMailingGeocodeAccuracy%2CPhone%2CFax%2CMobilePhone%2CHomePhone%2COtherPhone%2CAssistantPhone%2CReportsToId%2CEmail%2CTitle%2CDepartment%2CAssistantName%2CLeadSource%2CBirthdate%2CDescription%2COwnerId%2CHasOptedOutOfEmail%2CCreatedDate%2CCreatedById%2CLastModifiedDate%2CLastModifiedById%2CSystemModstamp%2CLastActivityDate%2CLastCURequestDate%2CLastCUUpdateDate%2CLastViewedDate%2CLastReferencedDate%2CEmailBouncedReason%2CEmailBouncedDate%2CIsEmailBounced%2CPhotoUrl%2CJigsaw%2CJigsawContactId%2CCleanStatus%2CIndividualId%2CIsPriorityRecord%2CContactSource%2CLevel__c%2CLanguages__c%2CPace_Contact_RecipientID__c%2Cnpe01__AlternateEmail__c%2Cnpe01__HomeEmail__c%2Cnpe01__PreferredPhone__c%2Cnpe01__Preferred_Email__c%2Cnpe01__Primary_Address_Type__c%2Cnpe01__Private__c%2Cnpe01__Secondary_Address_Type__c%2Cnpe01__SystemAccountProcessor__c%2Cnpe01__WorkEmail__c%2Cnpe01__WorkPhone__c%2Cnpe01__Home_Address__c%2Cnpe01__Organization_Type__c%2Cnpe01__Other_Address__c%2Cnpe01__Type_of_Account__c%2Cnpe01__Work_Address__c%2Cnpo02__AverageAmount__c%2Cnpo02__Best_Gift_Year_Total__c%2Cnpo02__Best_Gift_Year__c%2Cnpo02__FirstCloseDate__c%2Cnpo02__Household_Naming_Order__c%2Cnpo02__Household__c%2Cnpo02__LargestAmount__c%2Cnpo02__LastCloseDate__c%2Cnpo02__LastMembershipAmount__c%2Cnpo02__LastMembershipDate__c%2Cnpo02__LastMembershipLevel__c%2Cnpo02__LastMembershipOrigin__c%2Cnpo02__LastOppAmount__c%2Cnpo02__MembershipEndDate__c%2Cnpo02__MembershipJoinDate__c%2Cnpo02__Naming_Exclusions__c%2Cnpo02__NumberOfClosedOpps__c%2Cnpo02__NumberOfMembershipOpps__c%2Cnpo02__OppAmount2YearsAgo__c%2Cnpo02__OppAmountLastNDays__c%2Cnpo02__OppAmountLastYear__c%2Cnpo02__OppAmountThisYear__c%2Cnpo02__OppsClosed2YearsAgo__c%2Cnpo02__OppsClosedLastNDays__c%2Cnpo02__OppsClosedLastYear__c%2Cnpo02__OppsClosedThisYear__c%2Cnpo02__SmallestAmount__c%2Cnpo02__Soft_Credit_Last_Year__c%2Cnpo02__Soft_Credit_This_Year__c%2Cnpo02__Soft_Credit_Total__c%2Cnpo02__Soft_Credit_Two_Years_Ago__c%2Cnpo02__SystemHouseholdProcessor__c%2Cnpo02__TotalMembershipOppAmount__c%2Cnpo02__TotalOppAmount__c%2Cnpo02__Formula_HouseholdMailingAddress__c%2Cnpo02__Formula_HouseholdPhone__c%2Cnpo02__LastCloseDateHH__c%2Cnpo02__OppAmountLastYearHH__c%2Cnpo02__OppAmountThisYearHH__c%2Cnpo02__Total_Household_Gifts__c%2Cnpsp__Batch__c%2Cnpsp__Current_Address__c%2Cnpsp__CustomizableRollups_UseSkewMode__c%2Cnpsp__Deceased__c%2Cnpsp__Do_Not_Contact__c%2Cnpsp__Exclude_from_Household_Formal_Greeting__c%2Cnpsp__Exclude_from_Household_Informal_Greeting__c%2Cnpsp__Exclude_from_Household_Name__c%2Cnpsp__First_Soft_Credit_Amount__c%2Cnpsp__First_Soft_Credit_Date__c%2Cnpsp__HHId__c%2Cnpsp__Largest_Soft_Credit_Amount__c%2Cnpsp__Largest_Soft_Credit_Date__c%2Cnpsp__Last_Soft_Credit_Amount__c%2Cnpsp__Last_Soft_Credit_Date__c%2Cnpsp__Number_of_Soft_Credits_Last_N_Days__c%2Cnpsp__Number_of_Soft_Credits_Last_Year__c%2Cnpsp__Number_of_Soft_Credits_This_Year__c%2Cnpsp__Number_of_Soft_Credits_Two_Years_Ago__c%2Cnpsp__Number_of_Soft_Credits__c%2Cnpsp__Primary_Affiliation__c%2Cnpsp__Primary_Contact__c%2Cnpsp__Soft_Credit_Last_N_Days__c%2Cnpsp__Sustainer__c%2Cnpsp__Undeliverable_Address__c%2Cnpsp__is_Address_Override__c%2Cnpsp__Address_Verification_Status__c%2CGivecloud_Contact_ExternalID__c%2CHotglue_custom_field__c%2CHotglue_custom_field_2__c%2CHotglue_test_text__c%2CHotglue_test_text_3__c%2CHotglue_custom_field_43__c%2CNew_amazinh_custom_field__c%2CNew_amazing_custom_field__c%2CMailmodoSample__c%2Ctest_field_13__c%2CAbductedBy__c%2CInvestor__c%2CyourCustomField__c%2Cet4ae5__HasOptedOutOfMobile__c%2Cet4ae5__Mobile_Country_Code__c%2Ctest_field_6__c%2CTestField__c%2CTest_External_ID__c+FROM+Contact+WHERE+SystemModstamp+%3E+2026-10-29T00%3A00%3A00Z++ORDER+BY+SystemModstamp+ASC
+  response:
+    body:
+      string: '{"totalSize": 0, "done": true, "records": []}'
+    headers:
+      Cache-Control:
+      - no-cache,must-revalidate,max-age=0,no-store,private
+      Content-Type:
+      - application/json;charset=UTF-8
+      Date:
+      - Thu, 05 Nov 2026 20:13:07 GMT
+      Permissions-Policy:
+      - unload=*
+      Sforce-Limit-Info:
+      - api-usage=989/15000
+      Strict-Transport-Security:
+      - max-age=63072000; includeSubDomains
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      X-Content-Type-Options:
+      - nosniff
+      X-Robots-Tag:
+      - none
+      content-length:
+      - '45'
+      x-sfdc-trace-flags:
+      - '01'
+    status:
+      code: 200
+      message: OK
+version: 1

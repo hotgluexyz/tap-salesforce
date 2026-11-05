@@ -1,0 +1,3118 @@
+{
+  "streams": [
+    {
+      "stream": "Contact",
+      "tap_stream_id": "Contact",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "MasterRecordId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "AccountId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "IsPersonAccount": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "LastName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "FirstName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Salutation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherStreet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherCity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherState": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherPostalCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherCountry": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherLatitude": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "OtherLongitude": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "OtherGeocodeAccuracy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherAddress": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "street": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "state": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "postalCode": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "city": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "country": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "longitude": {
+                "type": [
+                  "null",
+                  "number"
+                ]
+              },
+              "latitude": {
+                "type": [
+                  "null",
+                  "number"
+                ]
+              },
+              "geocodeAccuracy": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            }
+          },
+          "MailingStreet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MailingCity": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MailingState": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MailingPostalCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MailingCountry": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MailingLatitude": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "MailingLongitude": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "MailingGeocodeAccuracy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MailingAddress": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "street": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "state": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "postalCode": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "city": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "country": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "longitude": {
+                "type": [
+                  "null",
+                  "number"
+                ]
+              },
+              "latitude": {
+                "type": [
+                  "null",
+                  "number"
+                ]
+              },
+              "geocodeAccuracy": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            }
+          },
+          "Phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Fax": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MobilePhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "HomePhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OtherPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "AssistantPhone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ReportsToId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Department": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "AssistantName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "LeadSource": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Birthdate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "OwnerId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "HasOptedOutOfEmail": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "CreatedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "CreatedById": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "LastModifiedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastModifiedById": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "SystemModstamp": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastActivityDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastCURequestDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastCUUpdateDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastViewedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastReferencedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "EmailBouncedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "EmailBouncedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "IsEmailBounced": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "PhotoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Jigsaw": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "JigsawContactId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "CleanStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "IndividualId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "IsPriorityRecord": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "ContactSource": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Level__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Languages__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Pace_Contact_RecipientID__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__AlternateEmail__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__HomeEmail__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__PreferredPhone__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Preferred_Email__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Primary_Address_Type__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Private__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npe01__Secondary_Address_Type__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__SystemAccountProcessor__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__WorkEmail__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__WorkPhone__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Home_Address__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Organization_Type__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Other_Address__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Type_of_Account__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npe01__Work_Address__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__AverageAmount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Best_Gift_Year_Total__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Best_Gift_Year__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__FirstCloseDate__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npo02__Household_Naming_Order__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Household__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__LargestAmount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__LastCloseDate__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npo02__LastMembershipAmount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__LastMembershipDate__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npo02__LastMembershipLevel__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__LastMembershipOrigin__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__LastOppAmount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__MembershipEndDate__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npo02__MembershipJoinDate__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npo02__Naming_Exclusions__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__NumberOfClosedOpps__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__NumberOfMembershipOpps__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppAmount2YearsAgo__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppAmountLastNDays__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppAmountLastYear__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppAmountThisYear__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppsClosed2YearsAgo__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppsClosedLastNDays__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppsClosedLastYear__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppsClosedThisYear__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__SmallestAmount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Soft_Credit_Last_Year__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Soft_Credit_This_Year__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Soft_Credit_Total__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Soft_Credit_Two_Years_Ago__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__SystemHouseholdProcessor__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__TotalMembershipOppAmount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__TotalOppAmount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Formula_HouseholdMailingAddress__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__Formula_HouseholdPhone__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npo02__LastCloseDateHH__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npo02__OppAmountLastYearHH__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__OppAmountThisYearHH__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npo02__Total_Household_Gifts__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Batch__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npsp__Current_Address__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npsp__CustomizableRollups_UseSkewMode__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__Deceased__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__Do_Not_Contact__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__Exclude_from_Household_Formal_Greeting__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__Exclude_from_Household_Informal_Greeting__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__Exclude_from_Household_Name__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__First_Soft_Credit_Amount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__First_Soft_Credit_Date__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npsp__HHId__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npsp__Largest_Soft_Credit_Amount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Largest_Soft_Credit_Date__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npsp__Last_Soft_Credit_Amount__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Last_Soft_Credit_Date__c": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "npsp__Number_of_Soft_Credits_Last_N_Days__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Number_of_Soft_Credits_Last_Year__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Number_of_Soft_Credits_This_Year__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Number_of_Soft_Credits_Two_Years_Ago__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Number_of_Soft_Credits__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Primary_Affiliation__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npsp__Primary_Contact__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__Soft_Credit_Last_N_Days__c": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "npsp__Sustainer__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "npsp__Undeliverable_Address__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__is_Address_Override__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "npsp__Address_Verification_Status__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Givecloud_Contact_ExternalID__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Hotglue_custom_field__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Hotglue_custom_field_2__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Hotglue_test_text__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Hotglue_test_text_3__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Hotglue_custom_field_43__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "New_amazinh_custom_field__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "New_amazing_custom_field__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "MailmodoSample__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "test_field_13__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "AbductedBy__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Investor__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "yourCustomField__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "et4ae5__HasOptedOutOfMobile__c": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "et4ae5__Mobile_Country_Code__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "test_field_6__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "TestField__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "Test_External_ID__c": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ListViewMemberships": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "Id"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsDeleted"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MasterRecordId"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "AccountId"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsPersonAccount"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastName"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "FirstName"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Salutation"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Name"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherStreet"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherCity"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherState"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherPostalCode"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherCountry"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherLatitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherLongitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherGeocodeAccuracy"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherAddress"
+          ],
+          "metadata": {
+            "inclusion": "unsupported",
+            "unsupported-description": "cannot query compound address fields or geolocations with bulk API"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingStreet"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingCity"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingState"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingPostalCode"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingCountry"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingLatitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingLongitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingGeocodeAccuracy"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailingAddress"
+          ],
+          "metadata": {
+            "inclusion": "unsupported",
+            "unsupported-description": "cannot query compound address fields or geolocations with bulk API"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Phone"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Fax"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MobilePhone"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "HomePhone"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OtherPhone"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "AssistantPhone"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "ReportsToId"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Email"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Title"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Department"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "AssistantName"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LeadSource"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Birthdate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Description"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "OwnerId"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "HasOptedOutOfEmail"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "CreatedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "CreatedById"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastModifiedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastModifiedById"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "SystemModstamp"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastActivityDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastCURequestDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastCUUpdateDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastViewedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastReferencedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "EmailBouncedReason"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "EmailBouncedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsEmailBounced"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "PhotoUrl"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Jigsaw"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "JigsawContactId"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "CleanStatus"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IndividualId"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsPriorityRecord"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "ContactSource"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Level__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Languages__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Pace_Contact_RecipientID__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__AlternateEmail__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__HomeEmail__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__PreferredPhone__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Preferred_Email__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Primary_Address_Type__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Private__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Secondary_Address_Type__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__SystemAccountProcessor__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__WorkEmail__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__WorkPhone__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Home_Address__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Organization_Type__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Other_Address__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Type_of_Account__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npe01__Work_Address__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__AverageAmount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Best_Gift_Year_Total__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Best_Gift_Year__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__FirstCloseDate__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Household_Naming_Order__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Household__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LargestAmount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LastCloseDate__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LastMembershipAmount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LastMembershipDate__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LastMembershipLevel__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LastMembershipOrigin__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LastOppAmount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__MembershipEndDate__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__MembershipJoinDate__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Naming_Exclusions__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__NumberOfClosedOpps__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__NumberOfMembershipOpps__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppAmount2YearsAgo__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppAmountLastNDays__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppAmountLastYear__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppAmountThisYear__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppsClosed2YearsAgo__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppsClosedLastNDays__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppsClosedLastYear__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppsClosedThisYear__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__SmallestAmount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Soft_Credit_Last_Year__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Soft_Credit_This_Year__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Soft_Credit_Total__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Soft_Credit_Two_Years_Ago__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__SystemHouseholdProcessor__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__TotalMembershipOppAmount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__TotalOppAmount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Formula_HouseholdMailingAddress__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Formula_HouseholdPhone__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__LastCloseDateHH__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppAmountLastYearHH__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__OppAmountThisYearHH__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npo02__Total_Household_Gifts__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Batch__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Current_Address__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__CustomizableRollups_UseSkewMode__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Deceased__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Do_Not_Contact__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Exclude_from_Household_Formal_Greeting__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Exclude_from_Household_Informal_Greeting__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Exclude_from_Household_Name__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__First_Soft_Credit_Amount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__First_Soft_Credit_Date__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__HHId__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Largest_Soft_Credit_Amount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Largest_Soft_Credit_Date__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Last_Soft_Credit_Amount__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Last_Soft_Credit_Date__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Number_of_Soft_Credits_Last_N_Days__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Number_of_Soft_Credits_Last_Year__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Number_of_Soft_Credits_This_Year__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Number_of_Soft_Credits_Two_Years_Ago__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Number_of_Soft_Credits__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Primary_Affiliation__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Primary_Contact__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Soft_Credit_Last_N_Days__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Sustainer__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Undeliverable_Address__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__is_Address_Override__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "npsp__Address_Verification_Status__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Givecloud_Contact_ExternalID__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Hotglue_custom_field__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Hotglue_custom_field_2__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Hotglue_test_text__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Hotglue_test_text_3__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Hotglue_custom_field_43__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "New_amazinh_custom_field__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "New_amazing_custom_field__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "MailmodoSample__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "test_field_13__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "AbductedBy__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Investor__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "yourCustomField__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "et4ae5__HasOptedOutOfMobile__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "et4ae5__Mobile_Country_Code__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "test_field_6__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "TestField__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Test_External_ID__c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "valid-replication-keys": [
+              "SystemModstamp"
+            ],
+            "table-key-properties": [
+              "Id"
+            ],
+            "selected": true,
+            "replication-method": "INCREMENTAL",
+            "replication-key": "SystemModstamp"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "ListViewMemberships"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        }
+      ]
+    }
+  ]
+}

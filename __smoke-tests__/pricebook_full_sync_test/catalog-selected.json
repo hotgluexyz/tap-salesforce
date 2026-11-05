@@ -1,0 +1,304 @@
+{
+  "streams": [
+    {
+      "stream": "Pricebook2",
+      "tap_stream_id": "Pricebook2",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "IsDeleted": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "Name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "CreatedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "CreatedById": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "LastModifiedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastModifiedById": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "SystemModstamp": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastViewedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "LastReferencedDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "IsActive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "IsArchived": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "Description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "IsStandard": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "Id"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsDeleted"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Name"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "CreatedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "CreatedById"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastModifiedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastModifiedById"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "SystemModstamp"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastViewedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "LastReferencedDate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsActive"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsArchived"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "Description"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "IsStandard"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected-by-default": true,
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "valid-replication-keys": [
+              "SystemModstamp"
+            ],
+            "table-key-properties": [
+              "Id"
+            ],
+            "selected": true,
+            "replication-method": "FULL_TABLE"
+          }
+        }
+      ]
+    }
+  ]
+}

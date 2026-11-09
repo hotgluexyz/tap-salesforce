@@ -1,0 +1,14 @@
+{
+    "client_id": "3MV***",
+    "client_secret": "AC6***",
+    "refresh_token": "5Ae***",
+    "instance_url": "https://salesforce.example.com",
+    "api_type": "REST",
+    "start_date": "2026-10-26T00:00:00Z",
+    "select_fields_by_default": true,
+    "list_reports": false,
+    "list_views": false,
+    "access_token": "00D***",
+    "expires_in": null,
+    "hg_sync_output": "__smoke-tests__/account_pagination_test/test_runtime"
+}

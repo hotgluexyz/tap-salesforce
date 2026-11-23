@@ -10,7 +10,7 @@ setup(name='tap-salesforce',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_salesforce'],
       install_requires=[
-          'requests>=2.20.0,<=2.29.0',
+          'requests>=2.33.0,<3.0.0',
           'pipelinewise-singer-python==1.2.0',
           'xmltodict==0.11.0',
           'openpyxl==3.1.3',
